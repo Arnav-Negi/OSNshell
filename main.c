@@ -1,22 +1,20 @@
 #include "included.h"
+#include "inputs.h"
+#include "pwd.h"
+#include "echo.h"
 
 extern int errno;
 sysinfo *currsys;
-struct utsname* utsbuf;
-
-#define DEF_BUF_SIZE 200;
-#define BUF_SZ_INC 100;
 
 void prompt()
 {
-    char *rel_path = (char *)malloc(sizeof(char) * 1024);
     int offset, offset_rel;
 
     if (strncmp(currsys->curr_dir, currsys->home_dir, strlen(currsys->home_dir)) == 0)
     {
         offset = strlen(currsys->home_dir);
         offset_rel = 1;
-        rel_path[0] = '~';
+        currsys->rel_path[0] = '~';
     }
     else
     {
@@ -24,90 +22,77 @@ void prompt()
         offset_rel = 0;
     }
 
-    rel_path[0] = '~';
+    currsys->rel_path[0] = '~';
     for (int i = 0;; i++)
     {
-        rel_path[i + offset_rel] = currsys->curr_dir[i + offset];
-        if (rel_path[i + offset_rel] == '\0')
+        currsys->rel_path[i + offset_rel] = currsys->curr_dir[i + offset];
+        if (currsys->rel_path[i + offset_rel] == '\0')
             break;
     }
-    printf("<%s@%s:%s>", currsys->user, currsys->OS, rel_path);
+    printf("<%s@%s:%s>", currsys->user, currsys->OS, currsys->rel_path);
     fflush(stdout);
 }
 
-char **parse_input(char *command)
+int handle_inputs(char *line)
 {
-    char **args = (char **)malloc(sizeof(char *) * 10);
-    strtok(command, " ");
-}
+    char **commands, **requests, **args;
 
-char *take_input()
-{
-    // Take input and handle buffer OF. Parse multiple inputs.
-    int BUF_SIZE = DEF_BUF_SIZE;
-    int ptr = 0;
-    char c;
-    char *input = (char *)malloc(sizeof(char) * BUF_SIZE);
-
-    if (input == NULL)
+    commands = tokenize(line, ";");
+    int i = 0, j = 0;
+    while (commands[i] != NULL)
     {
-        perror("out of memory while taking input.\n");
-        exit(1);
-    }
-
-    while (1)
-    {
-        prompt();
-        scanf("%c", &c);
-
-        if (c == EOF || c == '\n')
+        // SPEC 4 : Handle '&'.
+        requests = tokenize(commands[i++], "&");
+        j = 0;
+        while (requests[j] != NULL)
         {
-            input[ptr] = '\0';
-            return input;
-        }
-        else
-        {
-            input[ptr++] = c;
-        }
+            args = tokenize(requests[j++], " \t");
 
-        // dymnamic memory alloc
-        if (ptr >= BUF_SIZE)
-        {
-            BUF_SIZE += BUF_SZ_INC;
-            input = realloc(input, BUF_SIZE);
-
-            if (input == NULL)
+            // args[0] gives command, rest are arguments.
+            // Handle commands here using strcmp.
+            if (strcmp(args[0], "cd") == 0)
             {
-                perror("out of memory while taking input.\n");
-                exit(1);
+                // cd(args);
             }
+            if (strcmp(args[0], "pwd") == 0)
+            {
+                pwd();
+            }
+            if (strcmp(args[0], "echo") == 0)
+            {
+                echo(args);
+            }
+            printf("\n");
+            free(args);
         }
+        free(requests);
     }
+    free(commands);
+    return 0;
 }
 
 void shell_loop()
 {
-    char *line, *command;
-    char **args;
+    char *line;
     int status;
 
     do
     {
-        line = take_input();
-
-        command = strtok(line, ";&");
-
-        free(line), free(command), free(args);
-    } while (status);
+        prompt();
+        line = take_input(currsys);
+        status = handle_inputs(line);
+        free(line);
+    } while (status == 0);
 }
 
 int main(int argc, char **argv)
 {
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
+    currsys->rel_path = (char *)malloc(sizeof(char) * 1024);
 
     // set home directory.
     int BUF = DEF_BUF_SIZE;
-    
+
     currsys->curr_dir = (char *)malloc(BUF);
     while (getcwd(currsys->curr_dir, BUF) == NULL)
     {
@@ -117,13 +102,10 @@ int main(int argc, char **argv)
     currsys->home_dir = (char *)malloc(BUF);
     getcwd(currsys->home_dir, BUF);
 
-    currsys->user = malloc(1024);
-    gethostname(currsys->user, 1024);
+    currsys->OS = malloc(1024);
+    gethostname(currsys->OS, 1024);
 
-    utsbuf = (struct utsname*) malloc(sizeof(struct utsname));
-    uname(utsbuf);
-
-    currsys->OS = utsbuf->sysname;
+    currsys->user = getlogin();
     shell_loop();
 
     return 0;
