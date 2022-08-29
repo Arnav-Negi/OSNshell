@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/utsname.h>
+#include <pwd.h>
 
 #define NUM_CMD 10
 #define CMD_INC 5

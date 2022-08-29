@@ -90,6 +90,18 @@ int main(int argc, char **argv)
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
     currsys->rel_path = (char *)malloc(sizeof(char) * 1024);
 
+    // username
+    struct stat *info = malloc(sizeof(struct stat));
+    stat(".", info);
+    struct passwd *uid;
+    uid = getpwuid(info->st_uid);
+    currsys->user = uid->pw_name;
+
+    // system name
+    struct utsname *utsbuf = (struct utsname*)malloc(sizeof(struct utsname));
+    uname(utsbuf);
+    currsys->OS = utsbuf->nodename;
+
     // set home directory.
     int BUF = DEF_BUF_SIZE;
 
@@ -102,10 +114,6 @@ int main(int argc, char **argv)
     currsys->home_dir = (char *)malloc(BUF);
     getcwd(currsys->home_dir, BUF);
 
-    currsys->OS = malloc(1024);
-    gethostname(currsys->OS, 1024);
-
-    currsys->user = getlogin();
     shell_loop();
 
     return 0;
