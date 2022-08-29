@@ -27,5 +27,9 @@
     "**/.*/**",
     "**/.vscode",
     "**/.vscode/**"
-  ]
+  ],
+  "files.associations": {
+    "included.h": "c",
+    "stat.h": "c"
+  }
 }

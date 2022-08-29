@@ -6,3 +6,8 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/utsname.h>
+
+typedef struct sysinfo {
+    char *home_dir, *user, *OS, *curr_dir;
+} sysinfo;
