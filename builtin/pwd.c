@@ -1,7 +1,7 @@
 #include "pwd.h"
-#include "included.h"
+#include "../included.h"
 
-void pwd()
+char *pwd()
 {
     int BUF = DEF_BUF_SIZE;
 
@@ -12,5 +12,5 @@ void pwd()
         path = (char *)realloc(path, BUF);
     }
 
-    printf("%s", path);
+    return path;
 }

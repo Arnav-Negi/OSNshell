@@ -32,6 +32,9 @@
     "included.h": "c",
     "stat.h": "c",
     "types.h": "c",
-    "string.h": "c"
+    "string.h": "c",
+    "cd.h": "c",
+    "inputs.h": "c",
+    "echo.h": "c"
   }
 }

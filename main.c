@@ -1,9 +1,11 @@
 #include "included.h"
 #include "inputs.h"
-#include "pwd.h"
-#include "echo.h"
+#include "builtin/pwd.h"
+#include "builtin/echo.h"
+#include "builtin/cd.h"
 
 extern int errno;
+char *prevcd;
 sysinfo *currsys;
 
 void prompt()
@@ -35,7 +37,7 @@ void prompt()
 
 int handle_inputs(char *line)
 {
-    char **commands, **requests, **args;
+    char **commands, **requests, **args, *temp;
 
     commands = tokenize(line, ";");
     int i = 0, j = 0;
@@ -52,11 +54,13 @@ int handle_inputs(char *line)
             // Handle commands here using strcmp.
             if (strcmp(args[0], "cd") == 0)
             {
-                // cd(args);
+                cd(args, currsys);
             }
             if (strcmp(args[0], "pwd") == 0)
             {
-                pwd();
+                temp = pwd();
+                printf("%s", temp);
+                free(temp);
             }
             if (strcmp(args[0], "echo") == 0)
             {
@@ -113,6 +117,10 @@ int main(int argc, char **argv)
     }
     currsys->home_dir = (char *)malloc(BUF);
     getcwd(currsys->home_dir, BUF);
+
+    // initialise prevcd
+    prevcd = (char *)malloc(BUF);
+    getcwd(prevcd, BUF);
 
     shell_loop();
 
