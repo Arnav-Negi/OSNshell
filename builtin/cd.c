@@ -4,14 +4,6 @@
 
 extern char *prevcd;
 
-void swap(char *s1, char *s2)
-{
-    char *temp;
-    temp = s2;
-    s2 = s1;
-    s1 = temp;
-}
-
 void cd(char **args, sysinfo *currsys)
 {
     int status = 0;
