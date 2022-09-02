@@ -1,5 +1,5 @@
 #include "cd.h"
-#include "pwd.h"
+#include "workingdir.h"
 #include "../included.h"
 
 extern char *prevcd;
@@ -11,7 +11,7 @@ void cd(char **args, sysinfo *currsys)
 
     if (args[1] != NULL && args[2] != NULL)
     {
-        printf("cd: Too many arguments.");
+        printf("cd: Too many arguments.\n");
     }
 
     else if (args[1] == NULL || strcmp(args[1], "~") == 0)
@@ -22,7 +22,7 @@ void cd(char **args, sysinfo *currsys)
     else if (strcmp(args[1], "-") == 0)
     {
         status = chdir(prevcd);
-        printf("%s", prevcd);
+        printf("%s\n", prevcd);
     }
 
     else

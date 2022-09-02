@@ -35,6 +35,11 @@
     "string.h": "c",
     "cd.h": "c",
     "inputs.h": "c",
-    "echo.h": "c"
+    "echo.h": "c",
+    "ls.h": "c",
+    "dirent.h": "c",
+    "grp.h": "c",
+    "stdio.h": "c",
+    "time.h": "c"
   }
 }

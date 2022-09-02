@@ -15,7 +15,7 @@ char **tokenize(char *line, char *delim)
         {
             CMD_SZ += CMD_INC;
 
-            commands = (char **)malloc(sizeof(char *) * CMD_SZ);
+            commands = realloc(commands, sizeof(char *) * CMD_SZ);
             if (commands == NULL)
             {
                 perror("Out of memory while taking input");

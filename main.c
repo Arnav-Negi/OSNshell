@@ -1,8 +1,9 @@
 #include "included.h"
 #include "inputs.h"
-#include "builtin/pwd.h"
+#include "builtin/workingdir.h"
 #include "builtin/echo.h"
 #include "builtin/cd.h"
+#include "ls/ls.h"
 
 extern int errno;
 char *prevcd;
@@ -40,7 +41,7 @@ int handle_inputs(char *line)
     char **commands, **requests, **args, *temp;
 
     commands = tokenize(line, ";");
-    int i = 0, j = 0;
+    int i = 0, j = 0, argc;
     while (commands[i] != NULL)
     {
         // SPEC 4 : Handle '&'.
@@ -49,7 +50,10 @@ int handle_inputs(char *line)
         while (requests[j] != NULL)
         {
             args = tokenize(requests[j++], " \t");
-
+            argc = 0;
+            while (args[argc] != NULL) {
+                argc++;
+            }
             // args[0] gives command, rest are arguments.
             // Handle commands here using strcmp.
             if (strcmp(args[0], "cd") == 0)
@@ -59,14 +63,17 @@ int handle_inputs(char *line)
             if (strcmp(args[0], "pwd") == 0)
             {
                 temp = pwd();
-                printf("%s", temp);
+                printf("%s\n", temp);
                 free(temp);
             }
             if (strcmp(args[0], "echo") == 0)
             {
                 echo(args);
             }
-            printf("\n");
+            if (strcmp(args[0], "ls") == 0) 
+            {
+                listdirectory(argc, args);
+            }
             free(args);
         }
         free(requests);
