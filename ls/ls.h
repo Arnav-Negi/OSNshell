@@ -1,1 +1,1 @@
-int listdirectory(int argc, char **argv);
+int listdirectory(int argc, char **argv, sysinfo *currsys);

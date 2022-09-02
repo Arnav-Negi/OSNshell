@@ -72,7 +72,7 @@ int handle_inputs(char *line)
             }
             if (strcmp(args[0], "ls") == 0) 
             {
-                listdirectory(argc, args);
+                listdirectory(argc, args, currsys);
             }
             free(args);
         }
