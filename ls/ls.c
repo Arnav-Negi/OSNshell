@@ -1,6 +1,6 @@
 #include "../included.h"
 #include "ls.h"
-
+struct stat *statbuf;
 char *months[] = {"January  ", "February ", "March    ", "April    ", "May      ", "June     ", "July     ", "August   ", "September", "October  ", "November ", "December "};
 
 int filter(const struct dirent *a)
@@ -8,14 +8,18 @@ int filter(const struct dirent *a)
     return a->d_name[0] != '.';
 }
 
+void printentry(char *filepath)
+{
+    
+}
+
 void printsingledir(int flag, char *dirname)
 {
-    struct stat *statbuf = malloc(sizeof(struct stat));
     struct passwd *temppwd;
     struct group *tempgrp;
 
     char filepath[500];
-    int namelen = strlen(dirname);
+    int namelen = strlen(dirname), total = 0;
     strcpy(filepath, dirname);
 
     if (statbuf == NULL)
@@ -30,9 +34,19 @@ void printsingledir(int flag, char *dirname)
         len = scandir(dirname, &namelist, NULL, alphasort);
     else
         len = scandir(dirname, &namelist, filter, alphasort);
+
+    for (int i = 0; i<len; i++)
+    {
+        filepath[namelen] = '\0';
+            strcat(filepath, "/");
+            strcat(filepath, namelist[i]->d_name);
+        stat(filepath, statbuf);
+        total += statbuf->st_blocks;
+    }
+
     if (flag & 2)
     {
-        printf("total %d\n", len);
+        printf("total %d\n", total);
         for (int i = 0; i < len; i++)
         {
             filepath[namelen] = '\0';
@@ -101,14 +115,13 @@ void printsingledir(int flag, char *dirname)
         for (int i = 0; i < len; i++)
             printf("%s\n", namelist[i]->d_name);
     }
-
-    free(statbuf);
 }
 
 int listdirectory(int argc, char **argv)
 {
     int i = 1, j = 0;
     int flag = 0, flagcnt = 0;
+    statbuf = malloc(sizeof(struct stat));
 
     //  flag 10 for -l, 01 for -a and 11 for -la or -al
     while (argv[i] != NULL)
@@ -137,7 +150,10 @@ int listdirectory(int argc, char **argv)
 
     if (argc - flagcnt <= 1)
     {
-        argv[1] = ".";
+        argv[1] = malloc(2);
+        argv[1][0] = '.';
+        argv[1][1] = '\0';
+        argv[2] = NULL;
     }
 
     i = 1;
@@ -146,7 +162,26 @@ int listdirectory(int argc, char **argv)
         if ((argv[i][0] == '-' && argv[i][1] == '\0') || (argv[i][0] != '-'))
         {
             if (opendir(argv[i]) == NULL)
-                printf("ls: cannot access '%s': No such file or directory\n", argv[i]);
+            {
+                stat(argv[i], statbuf);
+                if (statbuf != NULL)
+                    printf("'%s'\t", argv[i]);
+            }
+        }
+        i++;
+    }
+    printf("\n");
+    i = 1;
+    while (argv[i] != NULL)
+    {
+        if ((argv[i][0] == '-' && argv[i][1] == '\0') || (argv[i][0] != '-'))
+        {
+            if (opendir(argv[i]) == NULL)
+            {
+                stat(argv[i], statbuf);
+                if (statbuf == NULL)
+                    printf("ls: cannot access '%s': No such file or directory\n", argv[i]);
+            }
         }
         i++;
     }
@@ -159,11 +194,12 @@ int listdirectory(int argc, char **argv)
             if (opendir(argv[i]) != NULL)
             {
                 if (argc - flagcnt > 2)
-                    printf("%s:\n", argv[i]);
+                    printf("\n%s:\n", argv[i]);
                 printsingledir(flag, argv[i]);
             }
         }
         i++;
     }
+    free(statbuf);
     return 0;
 }
