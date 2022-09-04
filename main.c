@@ -7,7 +7,7 @@
 #include "pinfo/pinfo.h"
 
 extern int errno;
-int prevcmd_time = -1;
+long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
 
@@ -82,7 +82,6 @@ void rembg(int signum)
 
 int createproc(int isbg, int argc, char **args)
 {
-    printf("%d\n", isbg);
     int pid = fork();
     int status;
 
@@ -120,7 +119,13 @@ void prompt()
 {
     free(currsys->rel_path);
     currsys->rel_path = convert_to_tilde(currsys->curr_dir, currsys);
-    printf("<%s@%s:%s>", currsys->user, currsys->OS, currsys->rel_path);
+    if (prevcmd_time != -1)
+    {
+        printf("<%s@%s:%s took %lds>", currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time);
+        prevcmd_time = -1;
+    }
+    else 
+        printf("<%s@%s:%s>", currsys->user, currsys->OS, currsys->rel_path);
     fflush(stdout);
 }
 
@@ -130,6 +135,16 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     if (args[0] == NULL)
     {
         return 1;
+    }
+
+    if (!isbg)
+    {
+        prevcmd_time = time(NULL);
+        if (prevcmd_time == -1)
+        {
+            perror("Time error");
+            exit(1);
+        }
     }
 
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
