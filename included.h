@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <time.h>
 #include <grp.h>
+#include <sys/wait.h>
 
 #define NUM_CMD 10
 #define CMD_INC 5
@@ -33,5 +34,10 @@
 typedef struct _sysinfo {
     char *home_dir, *user, *OS, *curr_dir, *rel_path;
 } sysinfo;
+
+typedef struct _procinfo {
+    char *procname;
+    int pid;
+} procinfo;
 
 #endif

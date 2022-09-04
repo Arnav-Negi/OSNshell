@@ -1,5 +1,37 @@
 #include "inputs.h"
 
+char *convert_to_tilde(char *pathname, sysinfo *currsys)
+{
+    int offset, offset_rel;
+    char *newpath = malloc(sizeof(char) * (strlen(pathname) + 1));
+    if (pathname == NULL)
+    {
+        printf("Out of memory\n");
+        exit(1);
+    }
+    if (strncmp(pathname, currsys->home_dir, strlen(currsys->home_dir)) == 0)
+    {
+        offset = strlen(currsys->home_dir);
+        offset_rel = 1;
+        newpath[0] = '~';
+    }
+    else
+    {
+        offset = 0;
+        offset_rel = 0;
+    }
+
+    newpath[0] = '~';
+    for (int i = 0;; i++)
+    {
+        newpath[i + offset_rel] = pathname[i + offset];
+        if (newpath[i + offset_rel] == '\0')
+            break;
+    }
+    
+    return newpath;
+}
+
 char **tokenize(char *line, char *delim)
 {
     char **commands = (char **)malloc(sizeof(char *) * NUM_CMD);
@@ -21,6 +53,8 @@ char **tokenize(char *line, char *delim)
                 perror("Out of memory while taking input");
                 exit(1);
             }
+            for (int i = num_cmds - 1; i < CMD_SZ; i++)
+                commands[i] = NULL;
         }
     }
     commands[num_cmds] = NULL;
@@ -41,7 +75,6 @@ char *take_input(sysinfo *currsys)
         exit(1);
     }
 
-    
     while (1)
     {
         scanf("%c", &c);
@@ -72,4 +105,3 @@ char *take_input(sysinfo *currsys)
 
     return input;
 }
-

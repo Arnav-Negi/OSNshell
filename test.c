@@ -1,10 +1,14 @@
 #include "included.h"
 
+char hm[] = "1902";
+
 int main()
 {
-    struct stat *statbuf = malloc(sizeof(struct stat));
-    char *pwd = malloc(100);
-    getcwd(pwd, 100);
-    int i = stat("ls", statbuf);
-    if (i == -1) perror("hmm");
+    char **endptr = malloc(sizeof(char *));
+    endptr[0] = NULL;
+    int x = strtoll(hm, endptr, 10);
+    if (endptr[0] != NULL)
+    {
+        printf("Error pinfo: argument not a valid pid\n");
+    }
 }
