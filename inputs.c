@@ -1,5 +1,16 @@
 #include "inputs.h"
 
+char *convert_from_tilde(char *pathname, sysinfo *currsys)
+{
+    char *returnpath = malloc(strlen(pathname) + strlen(currsys->home_dir) + 10);
+    strcpy(returnpath, currsys->home_dir);
+    strcat(returnpath, "/");
+    if (strlen(pathname) > 2)
+        strcat(returnpath, pathname);
+    
+    return returnpath;
+}
+
 char *convert_to_tilde(char *pathname, sysinfo *currsys)
 {
     int offset, offset_rel;
@@ -28,7 +39,7 @@ char *convert_to_tilde(char *pathname, sysinfo *currsys)
         if (newpath[i + offset_rel] == '\0')
             break;
     }
-    
+
     return newpath;
 }
 

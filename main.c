@@ -5,6 +5,7 @@
 #include "builtin/cd.h"
 #include "ls/ls.h"
 #include "pinfo/pinfo.h"
+#include "discover/discover.h"
 
 extern int errno;
 long int prevcmd_time = -1;
@@ -124,7 +125,7 @@ void prompt()
         printf("<%s@%s:%s took %lds>", currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time);
         prevcmd_time = -1;
     }
-    else 
+    else
         printf("<%s@%s:%s>", currsys->user, currsys->OS, currsys->rel_path);
     fflush(stdout);
 }
@@ -184,6 +185,10 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
                 pinfo(x, bgpid, currsys);
             free(endptr);
         }
+    }
+    else if (strcmp(args[0], "discover") == 0)
+    {
+        discover(argc, args, currsys);
     }
     else
     {
