@@ -4,7 +4,7 @@
 
 extern char *prevcd;
 
-void cd(char **args, sysinfo *currsys)
+int cd(char **args, sysinfo *currsys)
 {
     int status = 0;
 
@@ -38,4 +38,6 @@ void cd(char **args, sysinfo *currsys)
         prevcd = currsys->curr_dir;
         currsys->curr_dir = pwd();
     }
+
+    return status;
 }

@@ -2,7 +2,9 @@
     "files.associations": {
         "runcmd.h": "c",
         "grp.h": "c",
-        "echo.h": "c"
+        "echo.h": "c",
+        "included.h": "c",
+        "workingdir.h": "c"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }
