@@ -1,38 +1,34 @@
 #include "../included.h"
 #include "../inputs.h"
 
-int pinfo(int pid, procinfo **procarr, sysinfo *currsys)
+int pinfo(int pid, sysinfo *currsys)
 {
-    int isbg = 0;
     long long int vmsize;
     char state = ' ';
     char procname[200], execpath[500], *relexec;
+    int pgpid, fgpid;
 
     if (pid == -1)
         pid = getpid();
-
-    for (int i = 0; i < 1000; i++)
-    {
-        if (procarr[i] != NULL && procarr[i]->pid == pid)
-        {
-            isbg = 1;
-            break;
-        }
-    }
 
     char pathname[100];
     sprintf(pathname, "/proc/%d/stat", pid);
     FILE *statfile = fopen(pathname, "r");
     if (statfile == NULL)
     {
-        printf("Process with given pid not found\n");
+        printf(KRED"Process with given pid not found\n"RESET);
         return 1;
     }
     fscanf(statfile, "%d", &pid);
     fscanf(statfile, "%s", procname);
     fscanf(statfile, "%c", &state);
     fscanf(statfile, "%c", &state);
-    for (int i = 0; i<20; i++)
+    fscanf(statfile, "%d", &pgpid);
+    fscanf(statfile, "%d", &pgpid);
+    fscanf(statfile, "%d", &fgpid);
+    fscanf(statfile, "%d", &fgpid);
+    fscanf(statfile, "%d", &fgpid);
+    for (int i = 0; i<15; i++)
     {
         fscanf(statfile, "%lld", &vmsize);
     }
@@ -45,7 +41,7 @@ int pinfo(int pid, procinfo **procarr, sysinfo *currsys)
 
     printf("pid : %d\n", pid);
     printf("process Status : %c", state);
-    if (!isbg) printf("+");
+    if (pgpid == fgpid) printf("+");
     printf("\nmemory : %lld\n", vmsize);
     printf("executable Path : %s\n", relexec);
 

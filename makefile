@@ -1,2 +1,18 @@
-make:
-	gcc -o main main.c inputs.c included.h history/history.c pinfo/pinfo.c builtin/echo.c builtin/workingdir.c builtin/cd.c discover/discover.c ls/ls.c -Wall -fsanitize=address -Wpedantic -g
+DEPS := main.o inputs.o history/history.o pinfo/pinfo.o \
+				builtin/echo.o builtin/workingdir.o builtin/cd.o \
+				discover/discover.o ls/ls.o
+CC := gcc
+CFLAGS := -o main -Wall -fsanitize=address -Wpedantic -g
+
+$(DEPS): %.o: %.c
+
+.PHONY: clean
+
+all:	$(DEPS)
+	$(CC) -o main $(DEPS) $(CFLAGS)
+
+clean:
+	rm -f **/*.o *.o *.out
+
+del: 
+	rm -f main

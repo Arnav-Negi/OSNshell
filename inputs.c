@@ -5,9 +5,9 @@ char *convert_from_tilde(char *pathname, sysinfo *currsys)
     char *returnpath = malloc(strlen(pathname) + strlen(currsys->home_dir) + 10);
     strcpy(returnpath, currsys->home_dir);
     strcat(returnpath, "/");
-    if (strlen(pathname) > 2)
-        strcat(returnpath, pathname);
-    
+
+    strcat(returnpath, pathname);
+
     return returnpath;
 }
 
@@ -17,7 +17,7 @@ char *convert_to_tilde(char *pathname, sysinfo *currsys)
     char *newpath = malloc(sizeof(char) * (strlen(pathname) + 1));
     if (pathname == NULL)
     {
-        printf("Out of memory\n");
+        printf(KRED "Out of memory\n" RESET);
         exit(1);
     }
     if (strncmp(pathname, currsys->home_dir, strlen(currsys->home_dir)) == 0)
@@ -61,7 +61,7 @@ char **tokenize(char *line, char *delim)
             commands = realloc(commands, sizeof(char *) * CMD_SZ);
             if (commands == NULL)
             {
-                perror("Out of memory while taking input");
+                perror(KRED "Out of memory while taking input" RESET);
                 exit(1);
             }
             for (int i = num_cmds - 1; i < CMD_SZ; i++)
@@ -82,7 +82,7 @@ char *take_input(sysinfo *currsys)
 
     if (input == NULL)
     {
-        perror("out of memory while taking input.\n");
+        perror(KRED "out of memory while taking input.\n" RESET);
         exit(1);
     }
 
@@ -108,7 +108,7 @@ char *take_input(sysinfo *currsys)
 
             if (input == NULL)
             {
-                perror("out of memory while taking input.\n");
+                perror(KRED "out of memory while taking input.\n" RESET);
                 exit(1);
             }
         }

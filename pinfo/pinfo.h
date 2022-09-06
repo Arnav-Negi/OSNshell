@@ -1,1 +1,1 @@
-int pinfo(int pid, procinfo **procarr, sysinfo *currsys);
+int pinfo(int pid, sysinfo *currsys);

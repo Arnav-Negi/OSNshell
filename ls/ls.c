@@ -77,7 +77,7 @@ void printsingledir(int flag, char *dirname)
 
     if (statbuf == NULL)
     {
-        printf("ls %s: Out of memory.\n", dirname);
+        printf(KRED "ls %s: Out of memory.\n" RESET, dirname);
         return;
     }
 
@@ -107,6 +107,7 @@ void printsingledir(int flag, char *dirname)
             strcat(filepath, namelist[i]->d_name);
 
             printentry(filepath, namelist[i]->d_name);
+            free(namelist[i]);
         }
     }
     else
@@ -124,13 +125,17 @@ void printsingledir(int flag, char *dirname)
                 printf("%s%s%s\t", KBLU, namelist[i]->d_name, RESET);
             else
                 printf("%s\t", namelist[i]->d_name);
+            free(namelist[i]);
         }
         printf("\n");
     }
+    free(namelist);
 }
 
 int listdirectory(int argc, char **argv, sysinfo *currsys)
 {
+    DIR *tempdir;
+    int preventleak = 0;
     char tildefile[500];
     strcpy(tildefile, currsys->home_dir);
     int i = 1, j = 0;
@@ -153,7 +158,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                     flag |= 2;
                 else
                 {
-                    printf("ls: Invalid option %s.\n", argv[i]);
+                    printf(KRED "ls: Invalid option %s.\n" RESET, argv[i]);
                     return 1;
                 }
                 j++;
@@ -168,6 +173,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
         argv[1][0] = '.';
         argv[1][1] = '\0';
         argv[2] = NULL;
+        preventleak = 1;
     }
 
     i = 1;
@@ -178,19 +184,22 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
             if (argv[i][0] == '~')
             {
                 strcat(tildefile, &(argv[i][1]));
-                if (opendir(tildefile) == NULL)
+                if ((tempdir = opendir(tildefile)) == NULL)
                 {
                     if (stat(tildefile, statbuf) == -1)
-                        printf("ls: cannot access '%s': No such file or directory\n", tildefile);
+                        printf(KRED "ls: cannot access '%s'" RESET ": No such file or directory\n", tildefile);
                 }
+                free(tempdir);
+
                 strcpy(tildefile, currsys->home_dir);
             }
 
-            else if (opendir(argv[i]) == NULL)
+            else if ((tempdir = opendir(argv[i])) == NULL)
             {
                 if (stat(argv[i], statbuf) == -1)
-                    printf("ls: cannot access '%s': No such file or directory\n", argv[i]);
+                    printf(KRED "ls: cannot access '%s'" RESET ": No such file or directory\n", argv[i]);
             }
+            free(tempdir);
         }
         i++;
     }
@@ -203,7 +212,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
             if (argv[i][0] == '~')
             {
                 strcat(tildefile, &(argv[i][1]));
-                if (opendir(tildefile) == NULL)
+                if ((tempdir = opendir(tildefile)) == NULL)
                 {
                     if (stat(tildefile, statbuf) != -1)
                     {
@@ -223,10 +232,11 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                         files = 1;
                     }
                 }
+                free(tempdir);
                 strcpy(tildefile, currsys->home_dir);
             }
 
-            else if (opendir(argv[i]) == NULL)
+            else if ((tempdir = opendir(argv[i])) == NULL)
             {
                 if (stat(argv[i], statbuf) != -1)
                 {
@@ -246,6 +256,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                     files = 1;
                 }
             }
+            free(tempdir);
         }
         i++;
     }
@@ -260,23 +271,27 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
             if (argv[i][0] == '~')
             {
                 strcat(tildefile, &(argv[i][1]));
-                if (opendir(tildefile) != NULL)
+                if ((tempdir = opendir(tildefile)) != NULL)
                 {
                     if (argc - flagcnt > 2)
                         printf("\n%s:\n", tildefile);
                     printsingledir(flag, tildefile);
                 }
+                free(tempdir);
                 strcpy(tildefile, currsys->home_dir);
             }
-            if (opendir(argv[i]) != NULL)
+            if ((tempdir = opendir(argv[i])) != NULL)
             {
                 if (argc - flagcnt > 2)
                     printf("\n%s:\n", argv[i]);
                 printsingledir(flag, argv[i]);
             }
+            free(tempdir);
         }
         i++;
     }
     free(statbuf);
+    if (preventleak)
+        free(argv[1]);
     return 0;
 }

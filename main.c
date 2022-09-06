@@ -9,6 +9,7 @@
 #include "history/history.h"
 
 extern int errno;
+int err_prompt;
 long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
@@ -22,7 +23,7 @@ int createproc(int isbg, int argc, char **args);
 void prompt();
 int runcommand(int isbg, int argc, char **args, sysinfo *currsys);
 int handle_inputs(char *line);
-void shell_loop();
+int shell_loop();
 
 int newbg(int pid, char *proccess_name)
 {
@@ -34,7 +35,7 @@ int newbg(int pid, char *proccess_name)
         i++;
     if (i == 1000)
     {
-        printf("Process limit reached.\n");
+        printf(KRED "Process limit reached.\n" RESET);
         exit(1);
     }
     bgpid[i] = (procinfo *)malloc(sizeof(procinfo));
@@ -67,11 +68,11 @@ void rembg(int signum)
     {
         if (WIFSIGNALED(status))
         {
-            printf("\n%s with pid %d exited abnormally\n", bgpid[i]->procname, pid);
+            printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
         }
         if (WIFEXITED(status))
         {
-            printf("\n%s with pid %d exited normally\n", bgpid[i]->procname, pid);
+            printf(KGRN "\n%s with pid %d exited normally\n" RESET, bgpid[i]->procname, pid);
         }
         long int temp = prevcmd_time;
         prevcmd_time = -1;
@@ -87,24 +88,31 @@ void rembg(int signum)
 
 int createproc(int isbg, int argc, char **args)
 {
+    int parentpid = getpid();
     int pid = fork();
     int status;
 
     if (pid < 0)
     {
-        perror("fork error");
+        perror(KRED "fork error" RESET);
         return (1);
     }
 
     if (!pid)
     {
+        setpgid(0, 0);
+
         if (execvp(args[0], args) < 0)
         {
-            perror("Command not found");
+            perror(KRED "Command not found" RESET);
+            return 1;
         }
+        return 0;
     }
     else
     {
+        setpgid(pid, pid);
+
         if (isbg)
         {
             printf("[%d] %d\n", isbg, pid);
@@ -112,7 +120,29 @@ int createproc(int isbg, int argc, char **args)
         }
         else
         {
-            waitpid(pid, &status, 0);
+            setpgid(pid, pid);
+
+            signal(SIGTTIN, SIG_IGN);
+            signal(SIGTTOU, SIG_IGN);
+
+            tcsetpgrp(STDIN_FILENO, pid);
+            tcsetpgrp(STDOUT_FILENO, pid);
+
+            waitpid(pid, &status, WUNTRACED);
+
+            tcsetpgrp(STDIN_FILENO, parentpid);
+
+            signal(SIGTTIN, SIG_DFL);
+            signal(SIGTTOU, SIG_DFL);
+
+            if (WIFSTOPPED(status))
+                return 0;
+
+            if (WEXITSTATUS(status) == 1)
+            {
+                err_prompt = 1;
+                return 1;
+            }
         }
     }
 
@@ -125,17 +155,19 @@ void prompt()
     currsys->rel_path = convert_to_tilde(currsys->curr_dir, currsys);
     if (prevcmd_time != -1)
     {
-        printf("\n<%s@%s:%s took %lds>", currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time);
+        printf("%s\n<%s@%s:%s took %lds>%s", (err_prompt ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time, RESET);
         prevcmd_time = -1;
     }
     else
-        printf("<%s@%s:%s>", currsys->user, currsys->OS, currsys->rel_path);
+        printf("%s<%s@%s:%s>%s", (err_prompt ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, RESET);
+    err_prompt = 0;
     fflush(stdout);
 }
 
 int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
 {
     char *temp;
+    int status = 0;
     if (args[0] == NULL)
     {
         return 1;
@@ -146,11 +178,10 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
         prevcmd_time = time(NULL);
         if (prevcmd_time == -1)
         {
-            perror("Time error");
+            perror(KRED "Time error" RESET);
             exit(1);
         }
     }
-    addhistory(argc, args, currsys);
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
     if (strcmp(args[0], "cd") == 0)
     {
@@ -173,19 +204,19 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     else if (strcmp(args[0], "pinfo") == 0)
     {
         if (argc > 2)
-            printf("Error pinfo: too many arguments\n");
+            printf(KRED "Error pinfo: too many arguments\n" RESET);
         else if (args[1] == NULL)
-            pinfo(-1, bgpid, currsys);
+            pinfo(-1, currsys);
         else
         {
             char **endptr = malloc(sizeof(char *));
             int x = strtoll(args[1], endptr, 10);
             if (endptr[0][0] != '\0')
             {
-                printf("Error pinfo: argument not a valid pid\n");
+                printf(KRED "Error pinfo: argument not a valid pid\n" RESET);
             }
             else
-                pinfo(x, bgpid, currsys);
+                pinfo(x, currsys);
             free(endptr);
         }
     }
@@ -199,18 +230,19 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     }
     else if (strcmp(args[0], "quit") == 0 || strcmp(args[0], "exit") == 0)
     {
-        return 1;
+        return 2;
     }
     else
     {
-        createproc(isbg, argc, args);
+        status = createproc(isbg, argc, args);
     }
-    
-    return 0;
+    fflush(stdout);
+    return status;
 }
 
 int handle_inputs(char *line)
 {
+    addhistory(line, currsys);
     char **commands, **requests, **args;
 
     commands = tokenize(line, ";");
@@ -245,15 +277,15 @@ int handle_inputs(char *line)
 
             status = runcommand((bg > 0 ? totalbg - bg + 1 : 0), argc, args, currsys);
             bg--;
-            // free(args);
+            free(args);
         }
-        // free(requests);
+        free(requests);
     }
-    // free(commands);
+    free(commands);
     return status;
 }
 
-void shell_loop()
+int shell_loop()
 {
     char *line;
     int status;
@@ -265,11 +297,14 @@ void shell_loop()
         status = handle_inputs(line);
         free(line);
     } while (status == 0);
+    return status;
 }
 
 int main(int argc, char **argv)
 {
     signal(SIGCHLD, rembg);
+    err_prompt = 0;
+    int retval = 0;
 
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
     currsys->rel_path = (char *)malloc(sizeof(char) * 1024);
@@ -302,10 +337,12 @@ int main(int argc, char **argv)
     prevcd = (char *)malloc(BUF);
     getcwd(prevcd, BUF);
 
-    shell_loop();
+    retval = shell_loop();
     free(info);
     free(currsys->rel_path), free(currsys->curr_dir), free(currsys->home_dir);
     free(utsbuf);
+    free(prevcd);
     free(currsys);
-    return 0;
+    if (retval == 2) return 0;
+    return 1;
 }

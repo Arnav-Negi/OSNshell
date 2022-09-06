@@ -1,20 +1,20 @@
-ls -la
-ls asdasd
-ls asdasd ls
-ls asdad -la
-ls a
-ls -
-ls ls
-ls - -la
-ls a -la
-ls ~/ls
-ls ~/asda
-ls asda -la
-ls asdad
-ls ~/asda
-ls ~/ls
-ls ~/ls -la
-ls ..
-cd afsd
+quit
 cd ~/ls
-history
+cd !/ls
+cd ~/ls
+quit
+cd ~/ls
+discover ~
+cd ~
+quit
+discover ~
+discover ~/ls
+discover ~
+discover ~/ls
+quit
+discover ~
+discover ~/ls
+quit
+discover ~
+discover ~/ls
+quit

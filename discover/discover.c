@@ -14,9 +14,15 @@ void printdir(char *dirpath, int flag, char *file)
     for (int i = 0; i < len; i++)
     {
         if (strcmp(namelist[i]->d_name, ".") == 0)
+        {
+            free(namelist[i]);
             continue;
+        }
         if (strcmp(namelist[i]->d_name, "..") == 0)
+        {
+            free(namelist[i]);
             continue;
+        }
         strcat(currdir, "/");
         strcat(currdir, namelist[i]->d_name);
         lencurrdir += strlen(namelist[i]->d_name) + 1;
@@ -85,7 +91,8 @@ void printdir(char *dirpath, int flag, char *file)
 int discover(int argc, char **argv, sysinfo *currsys)
 {
     statbuf = malloc(sizeof(struct stat));
-    int flag = 0, i;
+    int flag = 0, i, prevleak = 0;
+    DIR *tempdir;
     char *filename = NULL, *targetdir = NULL;
 
     currdir = malloc(sizeof(char) * 500);
@@ -105,13 +112,15 @@ int discover(int argc, char **argv, sysinfo *currsys)
         }
         else if (argv[i][0] == '-')
         {
-            printf("discover error: invalid option %s\n", argv[i]);
+            printf(KRED "discover error" RESET ": invalid option %s\n", argv[i]);
         }
         else if (argv[i][0] == '"')
         {
             if (argv[i][strlen(argv[i]) - 1] != '"')
             {
-                printf("discover error: invalid filename, should be in quotations\n");
+                printf(KRED "discover error" RESET ": invalid filename, should be in quotations\n");
+                if (prevleak)
+                    free(targetdir);
                 return 1;
             }
             filename = &argv[i][1];
@@ -121,12 +130,19 @@ int discover(int argc, char **argv, sysinfo *currsys)
         {
             if (targetdir != NULL)
             {
-                printf("discover error: multiple target directories given\n");
+                printf(KRED "discover error" RESET ": multiple target directories given\n");
                 return 1;
             }
             targetdir = argv[i];
+            if (strcmp(targetdir, "~") == 0 || strcmp(targetdir, "~/") == 0)
+            {
+                targetdir = currsys->home_dir;
+            }
             if (targetdir[0] == '~')
-                targetdir = convert_from_tilde(targetdir, currsys);
+            {
+                targetdir = convert_from_tilde(&targetdir[2], currsys);
+                prevleak = 1;
+            }
             if (targetdir[strlen(targetdir) - 1] == '/')
             {
                 targetdir[strlen(targetdir) - 1] = '\0';
@@ -142,9 +158,9 @@ int discover(int argc, char **argv, sysinfo *currsys)
         flag = 3;
     if (targetdir != NULL)
     {
-        if (opendir(targetdir) == NULL)
+        if ((tempdir = opendir(targetdir)) == NULL)
         {
-            printf("Target directory doesn't exist\n");
+            printf(KRED "Target directory doesn't exist\n" RESET);
             free(currdir), free(statbuf);
             return 1;
         }
@@ -157,6 +173,7 @@ int discover(int argc, char **argv, sysinfo *currsys)
             strcat(currdir, "/");
             strcat(currdir, targetdir);
         }
+        free(tempdir);
     }
     lencurrdir = strlen(currdir);
     if ((flag & 1) && filename == NULL)
@@ -164,5 +181,7 @@ int discover(int argc, char **argv, sysinfo *currsys)
     printdir(currdir, flag, filename);
 
     free(currdir), free(statbuf);
+    if (prevleak)
+        free(targetdir);
     return 0;
 }
