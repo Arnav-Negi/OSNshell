@@ -180,8 +180,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                 strcat(tildefile, &(argv[i][1]));
                 if (opendir(tildefile) == NULL)
                 {
-                    stat(tildefile, statbuf);
-                    if (statbuf == NULL)
+                    if (stat(tildefile, statbuf) == -1)
                         printf("ls: cannot access '%s': No such file or directory\n", tildefile);
                 }
                 strcpy(tildefile, currsys->home_dir);
@@ -189,8 +188,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
 
             else if (opendir(argv[i]) == NULL)
             {
-                stat(argv[i], statbuf);
-                if (statbuf == NULL)
+                if (stat(argv[i], statbuf) == -1)
                     printf("ls: cannot access '%s': No such file or directory\n", argv[i]);
             }
         }
@@ -207,8 +205,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                 strcat(tildefile, &(argv[i][1]));
                 if (opendir(tildefile) == NULL)
                 {
-                    stat(tildefile, statbuf);
-                    if (statbuf != NULL)
+                    if (stat(tildefile, statbuf) != -1)
                     {
                         if (flag & 2)
                         {
@@ -231,8 +228,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
 
             else if (opendir(argv[i]) == NULL)
             {
-                stat(argv[i], statbuf);
-                if (statbuf != NULL)
+                if (stat(argv[i], statbuf) != -1)
                 {
                     if (flag & 2)
                     {

@@ -6,6 +6,7 @@
 #include "ls/ls.h"
 #include "pinfo/pinfo.h"
 #include "discover/discover.h"
+#include "history/history.h"
 
 extern int errno;
 long int prevcmd_time = -1;
@@ -72,7 +73,10 @@ void rembg(int signum)
         {
             printf("\n%s with pid %d exited normally\n", bgpid[i]->procname, pid);
         }
+        long int temp = prevcmd_time;
+        prevcmd_time = -1;
         prompt();
+        prevcmd_time = temp;
     }
 
     if (bgpid[i]->procname != NULL)
@@ -96,8 +100,7 @@ int createproc(int isbg, int argc, char **args)
     {
         if (execvp(args[0], args) < 0)
         {
-            perror("File not found");
-            exit(1);
+            perror("Command not found");
         }
     }
     else
@@ -122,7 +125,7 @@ void prompt()
     currsys->rel_path = convert_to_tilde(currsys->curr_dir, currsys);
     if (prevcmd_time != -1)
     {
-        printf("<%s@%s:%s took %lds>", currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time);
+        printf("\n<%s@%s:%s took %lds>", currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time);
         prevcmd_time = -1;
     }
     else
@@ -147,7 +150,7 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
             exit(1);
         }
     }
-
+    addhistory(argc, args, currsys);
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
     if (strcmp(args[0], "cd") == 0)
     {
@@ -190,10 +193,19 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     {
         discover(argc, args, currsys);
     }
+    else if (strcmp(args[0], "history") == 0)
+    {
+        print_history(currsys);
+    }
+    else if (strcmp(args[0], "quit") == 0 || strcmp(args[0], "exit") == 0)
+    {
+        return 1;
+    }
     else
     {
         createproc(isbg, argc, args);
     }
+    
     return 0;
 }
 
@@ -202,7 +214,7 @@ int handle_inputs(char *line)
     char **commands, **requests, **args;
 
     commands = tokenize(line, ";");
-    int i = 0, j = 0, argc, bg = 0, totalbg;
+    int i = 0, j = 0, argc, bg = 0, totalbg, status = 0;
     while (commands[i] != NULL)
     {
         // SPEC 4 : Handle '&'.
@@ -231,16 +243,14 @@ int handle_inputs(char *line)
                 argc++;
             }
 
-            runcommand((bg > 0 ? totalbg - bg + 1 : 0), argc, args, currsys);
+            status = runcommand((bg > 0 ? totalbg - bg + 1 : 0), argc, args, currsys);
             bg--;
-            free(args);
-            free(requests[j]);
+            // free(args);
         }
-        free(requests);
-        free(commands[i]);
+        // free(requests);
     }
-    free(commands);
-    return 0;
+    // free(commands);
+    return status;
 }
 
 void shell_loop()

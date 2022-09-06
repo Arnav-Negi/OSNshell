@@ -18,8 +18,10 @@
 
 #define NUM_CMD 10
 #define CMD_INC 5
-#define DEF_BUF_SIZE 200;
-#define BUF_SZ_INC 100;
+#define DEF_BUF_SIZE 200
+#define BUF_SZ_INC 100
+#define DEF_HIST_SIZE 20
+#define DEF_HIST_OUT 10
 
 #define KNRM  "\033[1;31m\x1B[0m"
 #define KRED  "\033[1;31m\x1B[31m"

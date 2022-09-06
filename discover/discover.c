@@ -22,7 +22,6 @@ void printdir(char *dirpath, int flag, char *file)
         lencurrdir += strlen(namelist[i]->d_name) + 1;
         if (stat(currdir, statbuf) == -1)
         {
-            perror("Error while reading directory");
             while (currdir[lencurrdir - 1] != '/')
             {
                 currdir[lencurrdir - 1] = '\0';
@@ -42,7 +41,6 @@ void printdir(char *dirpath, int flag, char *file)
                 {
                     printf("%s\n", currdir);
                 }
-                printdir(currdir, flag, file);
             }
             else
             {
@@ -60,7 +58,6 @@ void printdir(char *dirpath, int flag, char *file)
                 {
                     printf("%s\n", currdir);
                 }
-                printdir(currdir, flag, file);
             }
             else
             {
@@ -70,10 +67,15 @@ void printdir(char *dirpath, int flag, char *file)
                 }
             }
         }
+        printdir(currdir, flag, file);
 
         while (currdir[lencurrdir - 1] != '/')
-            currdir[lencurrdir-- - 1] = '\0';
-        currdir[lencurrdir-- - 1] = '\0';
+        {
+            currdir[lencurrdir - 1] = '\0';
+            lencurrdir--;
+        }
+        currdir[lencurrdir - 1] = '\0';
+        lencurrdir--;
         free(namelist[i]);
     }
     if (len > -1)
@@ -107,7 +109,7 @@ int discover(int argc, char **argv, sysinfo *currsys)
         }
         else if (argv[i][0] == '"')
         {
-            if (argv[i][strlen(argv[i]) - 1])
+            if (argv[i][strlen(argv[i]) - 1] != '"')
             {
                 printf("discover error: invalid filename, should be in quotations\n");
                 return 1;
@@ -125,7 +127,8 @@ int discover(int argc, char **argv, sysinfo *currsys)
             targetdir = argv[i];
             if (targetdir[0] == '~')
                 targetdir = convert_from_tilde(targetdir, currsys);
-            if (targetdir[strlen(targetdir) - 1] == '/') {
+            if (targetdir[strlen(targetdir) - 1] == '/')
+            {
                 targetdir[strlen(targetdir) - 1] = '\0';
             }
             if (strcmp(targetdir, ".") == 0)
@@ -156,7 +159,8 @@ int discover(int argc, char **argv, sysinfo *currsys)
         }
     }
     lencurrdir = strlen(currdir);
-    printf("%s\n", currdir);
+    if ((flag & 1) && filename == NULL)
+        printf("%s\n", currdir);
     printdir(currdir, flag, filename);
 
     free(currdir), free(statbuf);
