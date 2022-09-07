@@ -101,7 +101,6 @@ int createproc(int isbg, int argc, char **args)
     if (!pid)
     {
         setpgid(0, 0);
-
         if (execvp(args[0], args) < 0)
         {
             perror(KRED "Command not found" RESET);
@@ -131,6 +130,7 @@ int createproc(int isbg, int argc, char **args)
             waitpid(pid, &status, WUNTRACED);
 
             tcsetpgrp(STDIN_FILENO, parentpid);
+            tcsetpgrp(STDOUT_FILENO, parentpid);
 
             signal(SIGTTIN, SIG_DFL);
             signal(SIGTTOU, SIG_DFL);

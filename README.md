@@ -37,5 +37,5 @@ The project is built in a modular fashion. The included files are given below:
 
 - Assumptions regarding buffer size for directory names and maximum number of background processes are taken. 200 characters for buffer sizes and 100 background processes at once.
 - In command history, the commands "A ;B" and "A ; B" are treated differently due to lack of space between the semicolon and B.
-- Running the command "vim &" seems to break the terminal because of unwanted I/O being sent to the driver code. Since all shells don't run "vim &" (they suspend the process immediately) I assume this command won't be required and vim will be used in foreground.
+- Running the command "vim &" seems to break the terminal because of unwanted I/O being sent to the driver code. Since no shells run "vim &" (they suspend the process immediately) I assume this command won't be required and vim will be used in foreground.
 - ~ notation for home directory is not to be used with system programs and only with the programs given above.
