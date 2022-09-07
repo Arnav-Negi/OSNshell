@@ -8,7 +8,10 @@ $(DEPS): %.o: %.c
 
 .PHONY: clean
 
-all:	$(DEPS)
+make all:
+	make build; make clean
+
+build:	$(DEPS)
 	$(CC) -o main $(DEPS) $(CFLAGS)
 
 clean:
