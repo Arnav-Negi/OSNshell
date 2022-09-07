@@ -170,7 +170,7 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     int status = 0;
     if (args[0] == NULL)
     {
-        return 1;
+        return 0;
     }
 
     if (!isbg)
