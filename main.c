@@ -9,7 +9,8 @@
 #include "history/history.h"
 
 extern int errno;
-int err_prompt;
+
+int err_prompt, pipeflag, lastpipepid;
 long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
@@ -21,7 +22,8 @@ int newbg(int pid, char *proccess_name);
 void rembg(int signum);
 int createproc(int isbg, int argc, char **args);
 void prompt();
-int runcommand(int isbg, int argc, char **args, sysinfo *currsys);
+int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild);
+int runpipes(int isbg, char *cmd, sysinfo *currsys);
 int handle_inputs(char *line);
 int shell_loop();
 
@@ -50,7 +52,11 @@ void rembg(int signum)
 {
     int status;
     int pid = waitpid(-1, &status, WNOHANG);
-
+    if (pid == lastpipepid)
+    {
+        pipeflag = 0;
+        return;
+    }
     int i = 0;
     if (pid == 0)
         return;
@@ -62,7 +68,9 @@ void rembg(int signum)
             break;
     }
     if (i == 1000)
+    {
         return;
+    }
 
     if (pid > 0)
     {
@@ -104,15 +112,15 @@ int createproc(int isbg, int argc, char **args)
         if (execvp(args[0], args) < 0)
         {
             perror(KRED "Command not found" RESET);
-            return 1;
+            exit(1);
         }
-        return 0;
+        exit(0);
     }
     else
     {
         setpgid(pid, pid);
 
-        if (isbg)
+        if (isbg == 1)
         {
             printf("[%d] %d\n", isbg, pid);
             newbg(pid, args[0]);
@@ -159,12 +167,12 @@ void prompt()
         prevcmd_time = -1;
     }
     else
-        printf("%s<%s@%s:%s>%s", (err_prompt ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, RESET);
-    err_prompt = 0;
+        printf("%s<%s@%s:%s>%s", (err_prompt || errno ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, RESET);
+    err_prompt = 0, errno = 0;
     fflush(stdout);
 }
 
-int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
+int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild)
 {
     char *temp;
     int status = 0;
@@ -182,6 +190,13 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
             exit(1);
         }
     }
+
+    argc = parseIO(argc, args);
+    if (argc == -1)
+    {
+        return 1;
+    }
+
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
     if (strcmp(args[0], "cd") == 0)
     {
@@ -234,19 +249,151 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys)
     }
     else
     {
-        status = createproc(isbg, argc, args);
+        if (!ischild)
+            status = createproc(isbg, argc, args);
+        else
+        {
+            // dont fork.
+            setpgid(0, 0);
+            if (execvp(args[0], args) < 0)
+            {
+                perror(KRED "Command not found" RESET);
+                exit(1);
+            }
+            exit(0);
+        }
     }
     fflush(stdout);
+
+    if (infd != -1)
+    {
+        close(infd);
+        infd = -1;
+        dup2(o_infd, STDIN_FILENO);
+    }
+    if (outfd != -1)
+    {
+        close(outfd);
+        outfd = -1;
+        dup2(o_outfd, STDOUT_FILENO);
+    }
+
     return status;
+}
+
+int runpipes(int isbg, char *cmd, sysinfo *currsys)
+{
+    int filepipe[MAX_PIPES][2], childpid, argc = 0, status;
+    char **pipecmds, **args;
+    int numpipes = 0;
+    int done = 0;
+
+    pipecmds = tokenize(cmd, "|");
+
+    while (pipecmds[numpipes] != NULL)
+        numpipes++;
+
+    if (numpipes == 1)
+    {
+        args = tokenize(pipecmds[done], " \t");
+        while (args[argc] != NULL)
+            argc++;
+
+        status = runcommand(isbg, argc, args, currsys, 0);
+        free(args), free(pipecmds);
+        return status;
+    }
+
+    if (numpipes > MAX_PIPES)
+    {
+        printf(KRED "Too many piped commands.\n" RESET);
+        free(pipecmds);
+        return 1;
+    }
+    pipeflag = 1;
+    prevcmd_time = time(NULL);
+    while (done < numpipes)
+    {
+        if (done != numpipes - 1 && pipe(filepipe[done]) == -1)
+        {
+            printf(KRED "Couldn't create pipe.\n" RESET);
+            free(pipecmds);
+            return 1;
+        }
+
+        if ((childpid = fork()) == -1)
+        {
+            printf(KRED "Fork error.\n" RESET);
+            free(pipecmds);
+            return 1;
+        }
+
+        if (childpid == 0)
+        {
+            // child process.
+            // Takes input from pipe[done + 1][0] and output to pipe[done][1].
+            // Special case : done == 0 or numpipes.
+
+            if (done != 0)
+            {
+                if (done != numpipes - 1)
+                {
+                    changeIO(filepipe[done - 1][0], filepipe[done][1]);
+                    close(filepipe[done][0]);
+                }
+                else
+                {
+                    changeIO(filepipe[done - 1][0], -1);
+                }
+            }
+            else
+            {
+                changeIO(-1, filepipe[done][1]);
+                close(filepipe[done][0]);
+            }
+
+            // Running command.
+            args = tokenize(pipecmds[done], " \t");
+            while (args[argc] != NULL)
+                argc++;
+
+            status = runcommand(0, argc, args, currsys, 1);
+            free(args);
+            // Closing pipe.
+            if (done != numpipes - 1)
+                close(filepipe[done][1]);
+            if (done > 0)
+                close(filepipe[done - 1][0]);
+            exit(status);
+        }
+        else
+        {
+            // parent process.
+            // close unused pipe fd.
+            if (done == numpipes - 1)
+                lastpipepid = childpid;
+            if (done != numpipes - 1)
+                close(filepipe[done][1]);
+            if (done > 0)
+                close(filepipe[done - 1][0]);
+        }
+        done++;
+    }
+    while (pipeflag)
+    {
+    }
+    fflush(stdin), fflush(stdout);
+    free(pipecmds);
+    return 0;
 }
 
 int handle_inputs(char *line)
 {
     addhistory(line, currsys);
-    char **commands, **requests, **args;
+    char **commands, **requests;
 
     commands = tokenize(line, ";");
-    int i = 0, j = 0, argc, bg = 0, totalbg, status = 0;
+    int i = 0, j = 0, bg = 0, totalbg, status = 0;
     while (commands[i] != NULL)
     {
         // SPEC 4 : Handle '&'.
@@ -268,16 +415,9 @@ int handle_inputs(char *line)
         j = 0;
         while (requests[j] != NULL)
         {
-            args = tokenize(requests[j++], " \t");
-            argc = 0;
-            while (args[argc] != NULL)
-            {
-                argc++;
-            }
-
-            status = runcommand((bg > 0 ? totalbg - bg + 1 : 0), argc, args, currsys);
+            status = runpipes((bg > 0 ? totalbg - bg + 1 : 0), requests[j], currsys);
             bg--;
-            free(args);
+            j++;
         }
         free(requests);
     }
@@ -288,7 +428,7 @@ int handle_inputs(char *line)
 int shell_loop()
 {
     char *line;
-    int status;
+    int status = 0;
 
     do
     {
@@ -296,7 +436,7 @@ int shell_loop()
         line = take_input(currsys);
         status = handle_inputs(line);
         free(line);
-    } while (status == 0);
+    } while (status != 2);
     return status;
 }
 
@@ -305,6 +445,7 @@ int main(int argc, char **argv)
     signal(SIGCHLD, rembg);
     err_prompt = 0;
     int retval = 0;
+    infd = -1, outfd = -1, o_outfd = 500, o_infd = 501;
 
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
     currsys->rel_path = (char *)malloc(sizeof(char) * 1024);
@@ -343,6 +484,7 @@ int main(int argc, char **argv)
     free(utsbuf);
     free(prevcd);
     free(currsys);
-    if (retval == 2) return 0;
+    if (retval == 2)
+        return 0;
     return 1;
 }

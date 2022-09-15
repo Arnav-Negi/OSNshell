@@ -1,0 +1,20 @@
+sleep 5 | sleep 5
+sleep 4 | sleep 4
+sleep 5 | sleep 5
+sleep 2 | sleep 4
+sleep 2 | sleep 5
+sleep 2 | sleep 4
+sleep 4 | sleep 5
+ls | cat | cat | cat | cat | cat
+sleep 4 | sleep 5
+quit
+sleep 4 | sleep 5
+quit
+sleep 4 | sleep 5
+[A[Aquit
+quit
+sleep 2 | sleep 3
+sleep 2
+quit
+sleep 2 | sleep 3
+pwd

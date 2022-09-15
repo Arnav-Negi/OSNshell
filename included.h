@@ -22,6 +22,7 @@
 #define BUF_SZ_INC 100
 #define DEF_HIST_SIZE 20
 #define DEF_HIST_OUT 10
+#define MAX_PIPES 100
 
 #define KNRM  "\033[1;31m\x1B[0m"
 #define KRED  "\033[1;31m\x1B[31m"
@@ -41,5 +42,8 @@ typedef struct _procinfo {
     char *procname;
     int pid;
 } procinfo;
+
+int outfd, infd, o_outfd, o_infd;
+extern int outfd, infd, o_outfd, o_infd;
 
 #endif

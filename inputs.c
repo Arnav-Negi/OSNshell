@@ -1,4 +1,5 @@
 #include "inputs.h"
+extern int errno, outfd, infd, o_outfd, o_infd;
 
 char *convert_from_tilde(char *pathname, sysinfo *currsys)
 {
@@ -115,4 +116,90 @@ char *take_input(sysinfo *currsys)
     }
 
     return input;
+}
+
+int changeIO(int inputfile, int outputfile)
+{
+    if (inputfile != -1)
+    {
+        if (dup2(STDIN_FILENO, o_infd) < 0)
+        {
+            printf(KRED "Couldn't redirect I/O.\n" RESET);
+            return 1;
+        }
+        if (dup2(inputfile, STDIN_FILENO) < 0)
+        {
+            printf(KRED "Couldn't redirect I/O.\n" RESET);
+            return 1;
+        }
+        infd = inputfile;
+    }
+    if (outputfile != -1)
+    {
+        if (dup2(STDOUT_FILENO, o_outfd) < 0)
+        {
+            printf(KRED "Couldn't redirect I/O.\n" RESET);
+            return 1;
+        }
+        if (dup2(outputfile, STDOUT_FILENO) < 0)
+        {
+            printf(KRED "Couldn't redirect I/O.\n" RESET);
+            return 1;
+        }
+        outfd = outputfile;
+    }
+
+    return 0;
+}
+
+int parseIO(int argc, char **args)
+{
+    int imode = 0, omode = 0, newargc = 0;
+    int infile = -1, outfile = -1;
+    // Handle I/O redirection.
+    for (int i = 0; i < argc; i++)
+    {
+        if (omode == 1)
+        {
+            if ((outfile = open(args[i], O_CREAT | O_WRONLY | O_TRUNC, 0644)) < 0)
+            {
+                perror(KRED "Redirect error" RESET);
+                return -1;
+            }
+            if (changeIO(-1, outfile) == 1) return -1;
+            omode = 0;
+        }
+        else if (omode == 2)
+        {
+            if ((outfile = open(args[i], O_CREAT | O_APPEND, 0644)) < 0)
+            {
+                perror(KRED "Redirect error" RESET);
+                return -1;
+            }
+            if (changeIO(-1, outfile) == 1) return -1;
+            omode = 0;
+        }
+        else if (imode)
+        {
+            if ((infile = open(args[i], O_RDONLY)) < 0)
+            {
+                perror(KRED "Redirect error" RESET);
+                return -1;
+            }
+            if (changeIO(infile, -1) == 1) return -1;
+            imode = 0;
+        }
+        else if (strcmp(args[i], ">") == 0)
+            omode = 1;
+        else if (strcmp(args[i], ">>") == 0)
+            omode = 2;
+        else if (strcmp(args[i], "<") == 0)
+            imode = 1;
+        else {
+            args[newargc++] = args[i];
+        }
+    }
+
+    args[newargc] = NULL;
+    return newargc;
 }
