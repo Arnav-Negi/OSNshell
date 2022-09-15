@@ -15,6 +15,7 @@
 #include <time.h>
 #include <grp.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
 #define NUM_CMD 10
 #define CMD_INC 5
@@ -40,7 +41,8 @@ typedef struct _sysinfo {
 
 typedef struct _procinfo {
     char *procname;
-    int pid;
+    char *command;
+    int pid, jobno, status; // 1 if running, 0 if stopped
 } procinfo;
 
 int outfd, infd, o_outfd, o_infd;

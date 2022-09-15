@@ -1,11 +1,8 @@
 {
     "files.associations": {
-        "runcmd.h": "c",
-        "grp.h": "c",
-        "echo.h": "c",
-        "included.h": "c",
-        "workingdir.h": "c",
-        "history.h": "c"
+        "discover.h": "c",
+        "pinfo.h": "c",
+        "included.h": "c"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

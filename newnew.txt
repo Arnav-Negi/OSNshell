@@ -1,1 +1,0 @@
-README.md	[1;31m[32mbuiltin[1;31m[0m	[1;31m[32mdiscover[1;31m[0m	[1;31m[32mhistory[1;31m[0m	included.h	inputs.c	inputs.h	[1;31m[32mls[1;31m[0m	[1;31m[34mmain[1;31m[0m	main.c	makefile	new.txt	newnew.txt	[1;31m[32mpinfo[1;31m[0m	[1;31m[34mtest[1;31m[0m	test.c	

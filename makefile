@@ -1,6 +1,6 @@
 DEPS := main.o inputs.o history/history.o pinfo/pinfo.o \
 				builtin/echo.o builtin/workingdir.o builtin/cd.o \
-				discover/discover.o ls/ls.o
+				discover/discover.o ls/ls.o additional/jobs.o
 CC := gcc
 CFLAGS := -o main -Wall -fsanitize=address -Wpedantic -g
 

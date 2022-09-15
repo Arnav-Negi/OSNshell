@@ -7,10 +7,11 @@
 #include "pinfo/pinfo.h"
 #include "discover/discover.h"
 #include "history/history.h"
+#include "additional/jobs.h"
 
 extern int errno;
 
-int err_prompt, pipeflag, lastpipepid;
+int err_prompt, pipeflag, lastpipepid, isprompt;
 long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
@@ -18,16 +19,16 @@ sysinfo *currsys;
 procinfo *bgpid[1000] = {NULL};
 
 // PROTOTYPES
-int newbg(int pid, char *proccess_name);
+int newbg(int pid, char *proccess_name, char *command);
 void rembg(int signum);
-int createproc(int isbg, int argc, char **args);
+int createproc(int isbg, char *cmd, int argc, char **args);
 void prompt();
-int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild);
+int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild);
 int runpipes(int isbg, char *cmd, sysinfo *currsys);
 int handle_inputs(char *line);
 int shell_loop();
 
-int newbg(int pid, char *proccess_name)
+int newbg(int pid, char *proccess_name, char *command)
 {
     if (pid == 0)
         return 0;
@@ -40,10 +41,15 @@ int newbg(int pid, char *proccess_name)
         printf(KRED "Process limit reached.\n" RESET);
         exit(1);
     }
+    printf("[%d] %d\n", i, pid);
     bgpid[i] = (procinfo *)malloc(sizeof(procinfo));
     bgpid[i]->pid = pid;
+    bgpid[i]->status = 1;
+    bgpid[i]->jobno = i + 1;
     bgpid[i]->procname = (char *)malloc(strlen(proccess_name) + 1);
+    bgpid[i]->command = (char *)malloc(strlen(command) + 1);
     strcpy(bgpid[i]->procname, proccess_name);
+    strcpy(bgpid[i]->command, command);
 
     return 0;
 }
@@ -55,17 +61,16 @@ void rembg(int signum)
     if (pid == lastpipepid)
     {
         pipeflag = 0;
-        return;
+        lastpipepid = -1;
     }
     int i = 0;
     if (pid == 0)
         return;
     while (i < 1000)
     {
-        if (bgpid[i] == NULL)
-            i++;
-        else if (bgpid[i]->pid == pid)
+        if (bgpid[i] != NULL && bgpid[i]->pid == pid)
             break;
+        i++;
     }
     if (i == 1000)
     {
@@ -82,19 +87,23 @@ void rembg(int signum)
         {
             printf(KGRN "\n%s with pid %d exited normally\n" RESET, bgpid[i]->procname, pid);
         }
-        long int temp = prevcmd_time;
-        prevcmd_time = -1;
-        prompt();
-        prevcmd_time = temp;
+        if (isprompt)
+        {
+            long int temp = prevcmd_time;
+            prevcmd_time = -1;
+            prompt();
+            prevcmd_time = temp;
+            isprompt = 0;
+        }
     }
 
-    if (bgpid[i]->procname != NULL)
-        free(bgpid[i]->procname);
+    free(bgpid[i]->procname);
+    free(bgpid[i]->command);
     free(bgpid[i]);
     bgpid[i] = NULL;
 }
 
-int createproc(int isbg, int argc, char **args)
+int createproc(int isbg, char *cmd, int argc, char **args)
 {
     int parentpid = getpid();
     int pid = fork();
@@ -122,8 +131,7 @@ int createproc(int isbg, int argc, char **args)
 
         if (isbg == 1)
         {
-            printf("[%d] %d\n", isbg, pid);
-            newbg(pid, args[0]);
+            newbg(pid, args[0], cmd);
         }
         else
         {
@@ -172,7 +180,7 @@ void prompt()
     fflush(stdout);
 }
 
-int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild)
+int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild)
 {
     char *temp;
     int status = 0;
@@ -235,6 +243,10 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild)
             free(endptr);
         }
     }
+    else if (strcmp(args[0], "jobs") == 0)
+    {
+        jobs(bgpid, argc, args);
+    }
     else if (strcmp(args[0], "discover") == 0)
     {
         discover(argc, args, currsys);
@@ -250,7 +262,7 @@ int runcommand(int isbg, int argc, char **args, sysinfo *currsys, int ischild)
     else
     {
         if (!ischild)
-            status = createproc(isbg, argc, args);
+            status = createproc(isbg, cmd, argc, args);
         else
         {
             // dont fork.
@@ -299,7 +311,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         while (args[argc] != NULL)
             argc++;
 
-        status = runcommand(isbg, argc, args, currsys, 0);
+        status = runcommand(isbg, cmd, argc, args, currsys, 0);
         free(args), free(pipecmds);
         return status;
     }
@@ -311,7 +323,8 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         return 1;
     }
     pipeflag = 1;
-    prevcmd_time = time(NULL);
+    if (!isbg)
+        prevcmd_time = time(NULL);
     while (done < numpipes)
     {
         if (done != numpipes - 1 && pipe(filepipe[done]) == -1)
@@ -327,7 +340,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             free(pipecmds);
             return 1;
         }
-
+        args = tokenize(pipecmds[done], " \t");
         if (childpid == 0)
         {
             // child process.
@@ -353,11 +366,10 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             }
 
             // Running command.
-            args = tokenize(pipecmds[done], " \t");
             while (args[argc] != NULL)
                 argc++;
 
-            status = runcommand(0, argc, args, currsys, 1);
+            status = runcommand(0, cmd, argc, args, currsys, 1);
             free(args);
             // Closing pipe.
             if (done != numpipes - 1)
@@ -370,6 +382,8 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         {
             // parent process.
             // close unused pipe fd.
+            if (isbg)
+                newbg(childpid, args[0], cmd);
             if (done == numpipes - 1)
                 lastpipepid = childpid;
             if (done != numpipes - 1)
@@ -377,6 +391,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             if (done > 0)
                 close(filepipe[done - 1][0]);
         }
+        free(args);
         done++;
     }
     while (pipeflag)
@@ -415,6 +430,10 @@ int handle_inputs(char *line)
         j = 0;
         while (requests[j] != NULL)
         {
+            if (bg > 0 ? totalbg - bg + 1 : 0)
+                isprompt = 1;
+            else
+                isprompt = 0;
             status = runpipes((bg > 0 ? totalbg - bg + 1 : 0), requests[j], currsys);
             bg--;
             j++;
@@ -434,6 +453,7 @@ int shell_loop()
     {
         prompt();
         line = take_input(currsys);
+        isprompt = 0;
         status = handle_inputs(line);
         free(line);
     } while (status != 2);
@@ -446,6 +466,7 @@ int main(int argc, char **argv)
     err_prompt = 0;
     int retval = 0;
     infd = -1, outfd = -1, o_outfd = 500, o_infd = 501;
+    isprompt = 1;
 
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
     currsys->rel_path = (char *)malloc(sizeof(char) * 1024);

@@ -2,11 +2,9 @@
 
 int main()
 {
-    int pid = fork();
-    if (pid) {
-        printf("Hey\n");
-    }
-    else {
-        printf("yoo\n");
-    }
+    char **ar = (char **)malloc(24);
+    ar[0] = "grep";
+    ar[1] = "*";
+    ar[2] = NULL;
+    execvp(ar[0], ar);
 }

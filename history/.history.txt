@@ -1,20 +1,20 @@
-sleep 5 | sleep 5
-sleep 4 | sleep 4
-sleep 5 | sleep 5
-sleep 2 | sleep 4
-sleep 2 | sleep 5
-sleep 2 | sleep 4
-sleep 4 | sleep 5
-ls | cat | cat | cat | cat | cat
-sleep 4 | sleep 5
+pinfo
+ps
+pinfo 26711
 quit
-sleep 4 | sleep 5
+jobs
+sleep 5 &
+jobs
+sleep 5 &
+jobs
+nano &
 quit
-sleep 4 | sleep 5
-[A[Aquit
+nano &
+jobs
+nano &
+jobs
+sleep 10 &
+jobs
+
+kill -9 46745
 quit
-sleep 2 | sleep 3
-sleep 2
-quit
-sleep 2 | sleep 3
-pwd
