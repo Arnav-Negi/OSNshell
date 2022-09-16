@@ -1,20 +1,20 @@
-pinfo
-ps
-pinfo 26711
-quit
-jobs
 sleep 5 &
-jobs
-sleep 5 &
-jobs
-nano &
-quit
-nano &
-jobs
-nano &
-jobs
-sleep 10 &
-jobs
+sleep 6 &
 
-kill -9 46745
+quit
+nano &
+jobs
+sig 48167 9
+
+jobs
+quit
+sleep 20 &
+jobs
+sig 1 9
+sig 0 9
+[A
+quit
+sleep 20 &
+jobs
+fg 1
 quit

@@ -1,13 +1,5 @@
-#include "included.h"
-#include "inputs.h"
-#include "builtin/workingdir.h"
-#include "builtin/echo.h"
-#include "builtin/cd.h"
-#include "ls/ls.h"
-#include "pinfo/pinfo.h"
-#include "discover/discover.h"
-#include "history/history.h"
-#include "additional/jobs.h"
+#define __MAIN__
+#include "headers.h"
 
 extern int errno;
 
@@ -41,13 +33,14 @@ int newbg(int pid, char *proccess_name, char *command)
         printf(KRED "Process limit reached.\n" RESET);
         exit(1);
     }
-    printf("[%d] %d\n", i, pid);
+    printf("[%d] %d\n", i + 1, pid);
     bgpid[i] = (procinfo *)malloc(sizeof(procinfo));
     bgpid[i]->pid = pid;
     bgpid[i]->status = 1;
     bgpid[i]->jobno = i + 1;
     bgpid[i]->procname = (char *)malloc(strlen(proccess_name) + 1);
     bgpid[i]->command = (char *)malloc(strlen(command) + 1);
+    bgpid[i]->pgpid = pid;
     strcpy(bgpid[i]->procname, proccess_name);
     strcpy(bgpid[i]->command, command);
 
@@ -208,7 +201,7 @@ int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
     if (strcmp(args[0], "cd") == 0)
     {
-        cd(args, currsys);
+        err_prompt = cd(args, currsys);
     }
     else if (strcmp(args[0], "pwd") == 0)
     {
@@ -222,7 +215,7 @@ int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int
     }
     else if (strcmp(args[0], "ls") == 0)
     {
-        listdirectory(argc, args, currsys);
+        err_prompt = listdirectory(argc, args, currsys);
     }
     else if (strcmp(args[0], "pinfo") == 0)
     {
@@ -239,17 +232,29 @@ int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int
                 printf(KRED "Error pinfo: argument not a valid pid\n" RESET);
             }
             else
-                pinfo(x, currsys);
+                err_prompt = pinfo(x, currsys);
             free(endptr);
         }
     }
     else if (strcmp(args[0], "jobs") == 0)
     {
-        jobs(bgpid, argc, args);
+        err_prompt = jobs(bgpid, argc, args);
+    }
+    else if (strcmp(args[0], "sig") == 0)
+    {
+        err_prompt = sig(bgpid, argc, args);
+    }
+    else if (strcmp(args[0], "fg") == 0)
+    {
+        err_prompt = fg(argc, args, bgpid);
+    }
+    else if (strcmp(args[0], "bg") == 0)
+    {
+        err_prompt = bg(argc, args, bgpid);
     }
     else if (strcmp(args[0], "discover") == 0)
     {
-        discover(argc, args, currsys);
+        err_prompt = discover(argc, args, currsys);
     }
     else if (strcmp(args[0], "history") == 0)
     {

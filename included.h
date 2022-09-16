@@ -42,7 +42,7 @@ typedef struct _sysinfo {
 typedef struct _procinfo {
     char *procname;
     char *command;
-    int pid, jobno, status; // 1 if running, 0 if stopped
+    int pid, pgpid, jobno, status; // 1 if running, 0 if stopped
 } procinfo;
 
 int outfd, infd, o_outfd, o_infd;

@@ -1,10 +1,11 @@
 #include "included.h"
 
+struct _to {
+    int x, y1, z;
+    long long int y;
+};
+
 int main()
 {
-    char **ar = (char **)malloc(24);
-    ar[0] = "grep";
-    ar[1] = "*";
-    ar[2] = NULL;
-    execvp(ar[0], ar);
+   printf("%d", sizeof(struct _to));
 }
