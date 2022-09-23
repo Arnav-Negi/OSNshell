@@ -1,11 +1,14 @@
 #include "included.h"
 
-struct _to {
-    int x, y1, z;
-    long long int y;
-};
+void func(int signum)
+{
+    printf("%d", signum);
+}
 
 int main()
 {
-   printf("%d", sizeof(struct _to));
+    printf("start\n");
+    signal(SIGCHLD, func);
+    kill(getpid(), SIGCHLD);
+    printf("after kill.\n");
 }

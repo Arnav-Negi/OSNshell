@@ -1,20 +1,20 @@
-sleep 5 &
-sleep 6 &
+sleep 5
+ps -v
+pinfo 13669
+jobs
+quit
+discover
 
+jobs
+discover
+discover ~
+discover /home
+sleep 10
 quit
-nano &
+nano 
+fg
 jobs
-sig 48167 9
-
-jobs
-quit
-sleep 20 &
-jobs
-sig 1 9
-sig 0 9
-[A
-quit
-sleep 20 &
-jobs
-fg 1
+ps -v
+kill -9 14531
+ps -v
 quit

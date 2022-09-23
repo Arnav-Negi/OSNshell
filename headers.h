@@ -1,7 +1,7 @@
 #include "included.h"
 
 #ifdef __MAIN__
-#include "inputs.h"
+#include "helper/inputs.h"
 #include "builtin/workingdir.h"
 #include "builtin/echo.h"
 #include "builtin/cd.h"
@@ -13,4 +13,6 @@
 #include "job_control/signal.h"
 #include "job_control/fg.h"
 #include "job_control/bg.h"
+#include "signals/signal_handling.h"
+#include "helper/prompt.h"
 #endif

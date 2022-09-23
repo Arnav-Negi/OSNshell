@@ -1,4 +1,4 @@
-#include "included.h"
+#include "../included.h"
 char *convert_from_tilde(char *pathname, sysinfo *currsys);
 char *convert_to_tilde(char *pathname, sysinfo *currsys);
 char *take_input(sysinfo *currsys);

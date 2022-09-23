@@ -16,11 +16,19 @@ int fg(int argc, char **args, procinfo *arr[])
     }
 
     int pgpid = arr[jobno]->pgpid, pid = arr[jobno]->pid;
-
     if (kill(pid, SIGCONT) == -1) {
         perror(KRED"error"RESET);
         return 1;
     }
+
+    fgpid.procname = arr[jobno]->procname;
+    fgpid.pgpid = arr[jobno]->pgpid;
+    fgpid.status = 1;
+    fgpid.pid = arr[jobno]->pid;
+    fgpid.command = arr[jobno]->command;
+    fgpid.jobno = jobno;
+
+    arr[jobno] = NULL;
 
     signal(SIGTTIN, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);

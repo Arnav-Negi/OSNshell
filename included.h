@@ -47,5 +47,10 @@ typedef struct _procinfo {
 
 int outfd, infd, o_outfd, o_infd;
 extern int outfd, infd, o_outfd, o_infd;
+extern int err_prompt, pipeflag, lastpipepid, isprompt;
+extern long int prevcmd_time;
+extern procinfo fgpid;
+extern procinfo *bgpid[];
+extern sysinfo *currsys;
 
 #endif

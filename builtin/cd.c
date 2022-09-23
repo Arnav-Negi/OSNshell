@@ -1,7 +1,7 @@
 #include "cd.h"
 #include "workingdir.h"
 #include "../included.h"
-#include "../inputs.h"
+#include "../helper/inputs.h"
 
 extern char *prevcd;
 

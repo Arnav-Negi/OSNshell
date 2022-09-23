@@ -1,5 +1,5 @@
 #include "../included.h"
-#include "../inputs.h"
+#include "../helper/inputs.h"
 #include "../builtin/cd.h"
 #include "../builtin/workingdir.h"
 

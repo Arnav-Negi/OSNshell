@@ -4,97 +4,21 @@
 extern int errno;
 
 int err_prompt, pipeflag, lastpipepid, isprompt;
+procinfo fgpid;
 long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
 
 procinfo *bgpid[1000] = {NULL};
+extern procinfo * bgpid[];
 
 // PROTOTYPES
-int newbg(int pid, char *proccess_name, char *command);
 void rembg(int signum);
 int createproc(int isbg, char *cmd, int argc, char **args);
-void prompt();
 int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild);
 int runpipes(int isbg, char *cmd, sysinfo *currsys);
 int handle_inputs(char *line);
 int shell_loop();
-
-int newbg(int pid, char *proccess_name, char *command)
-{
-    if (pid == 0)
-        return 0;
-
-    int i = 0;
-    while (i < 1000 && bgpid[i] != NULL)
-        i++;
-    if (i == 1000)
-    {
-        printf(KRED "Process limit reached.\n" RESET);
-        exit(1);
-    }
-    printf("[%d] %d\n", i + 1, pid);
-    bgpid[i] = (procinfo *)malloc(sizeof(procinfo));
-    bgpid[i]->pid = pid;
-    bgpid[i]->status = 1;
-    bgpid[i]->jobno = i + 1;
-    bgpid[i]->procname = (char *)malloc(strlen(proccess_name) + 1);
-    bgpid[i]->command = (char *)malloc(strlen(command) + 1);
-    bgpid[i]->pgpid = pid;
-    strcpy(bgpid[i]->procname, proccess_name);
-    strcpy(bgpid[i]->command, command);
-
-    return 0;
-}
-
-void rembg(int signum)
-{
-    int status;
-    int pid = waitpid(-1, &status, WNOHANG);
-    if (pid == lastpipepid)
-    {
-        pipeflag = 0;
-        lastpipepid = -1;
-    }
-    int i = 0;
-    if (pid == 0)
-        return;
-    while (i < 1000)
-    {
-        if (bgpid[i] != NULL && bgpid[i]->pid == pid)
-            break;
-        i++;
-    }
-    if (i == 1000)
-    {
-        return;
-    }
-
-    if (pid > 0)
-    {
-        if (WIFSIGNALED(status))
-        {
-            printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
-        }
-        if (WIFEXITED(status))
-        {
-            printf(KGRN "\n%s with pid %d exited normally\n" RESET, bgpid[i]->procname, pid);
-        }
-        if (isprompt)
-        {
-            long int temp = prevcmd_time;
-            prevcmd_time = -1;
-            prompt();
-            prevcmd_time = temp;
-            isprompt = 0;
-        }
-    }
-
-    free(bgpid[i]->procname);
-    free(bgpid[i]->command);
-    free(bgpid[i]);
-    bgpid[i] = NULL;
-}
 
 int createproc(int isbg, char *cmd, int argc, char **args)
 {
@@ -128,6 +52,8 @@ int createproc(int isbg, char *cmd, int argc, char **args)
         }
         else
         {
+            fgpid.pid = pid, fgpid.command = malloc(strlen(cmd) + 1), fgpid.status = 1, fgpid.procname = malloc(strlen(args[0]) + 1);
+            strcpy(fgpid.procname, args[0]), strcpy(fgpid.command, cmd);
             setpgid(pid, pid);
 
             signal(SIGTTIN, SIG_IGN);
@@ -135,8 +61,12 @@ int createproc(int isbg, char *cmd, int argc, char **args)
 
             tcsetpgrp(STDIN_FILENO, pid);
             tcsetpgrp(STDOUT_FILENO, pid);
-
+            
+            fgpid.status = 1;
             waitpid(pid, &status, WUNTRACED);
+            fgpid.pid = -1;
+            free(fgpid.procname);
+            free(fgpid.command);
 
             tcsetpgrp(STDIN_FILENO, parentpid);
             tcsetpgrp(STDOUT_FILENO, parentpid);
@@ -156,21 +86,6 @@ int createproc(int isbg, char *cmd, int argc, char **args)
     }
 
     return 0;
-}
-
-void prompt()
-{
-    free(currsys->rel_path);
-    currsys->rel_path = convert_to_tilde(currsys->curr_dir, currsys);
-    if (prevcmd_time != -1)
-    {
-        printf("%s\n<%s@%s:%s took %lds>%s", (err_prompt ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, time(NULL) - prevcmd_time, RESET);
-        prevcmd_time = -1;
-    }
-    else
-        printf("%s<%s@%s:%s>%s", (err_prompt || errno ? KRED : KCYN), currsys->user, currsys->OS, currsys->rel_path, RESET);
-    err_prompt = 0, errno = 0;
-    fflush(stdout);
 }
 
 int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild)
@@ -468,7 +383,11 @@ int shell_loop()
 int main(int argc, char **argv)
 {
     signal(SIGCHLD, rembg);
+    signal(SIGTSTP, ctrlZ_handler);
+    // signal(SIGINT, ctrlC_handler);
+
     err_prompt = 0;
+    fgpid.pid = -1;
     int retval = 0;
     infd = -1, outfd = -1, o_outfd = 500, o_infd = 501;
     isprompt = 1;
@@ -510,6 +429,9 @@ int main(int argc, char **argv)
     free(utsbuf);
     free(prevcd);
     free(currsys);
+    if (fgpid.pid != -1) {
+        free(fgpid.procname), free(fgpid.command);
+    }
     if (retval == 2)
         return 0;
     return 1;
