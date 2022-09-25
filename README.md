@@ -1,6 +1,6 @@
 # OSN Assignment - Shell
 
-This project is the submission for OSN Assignment 2, 2022.
+This project is the submission for OSN Assignment 2 and 3, 2022.
 
 - Name: Arnav Negi
 - Roll: 2021101112
