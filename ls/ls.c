@@ -120,11 +120,11 @@ void printsingledir(int flag, char *dirname)
 
             stat(filepath, statbuf);
             if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
-                printf("%s%s%s\t", KGRN, namelist[i]->d_name, RESET);
+                printf("%s%s%s   ", KGRN, namelist[i]->d_name, RESET);
             else if (statbuf->st_mode & S_IXUSR)
-                printf("%s%s%s\t", KBLU, namelist[i]->d_name, RESET);
+                printf("%s%s%s   ", KBLU, namelist[i]->d_name, RESET);
             else
-                printf("%s\t", namelist[i]->d_name);
+                printf("%s   ", namelist[i]->d_name);
             free(namelist[i]);
         }
         printf("\n");
@@ -223,11 +223,11 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                         else
                         {
                             if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
-                                printf("%s%s%s\t", KGRN, tildefile, RESET);
+                                printf("%s%s%s  ", KGRN, tildefile, RESET);
                             else if (statbuf->st_mode & S_IXUSR)
-                                printf("%s%s%s\t", KBLU, tildefile, RESET);
+                                printf("%s%s%s  ", KBLU, tildefile, RESET);
                             else
-                                printf("%s\t", tildefile);
+                                printf("%s  ", tildefile);
                         }
                         files = 1;
                     }
@@ -247,11 +247,11 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                     else
                     {
                         if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
-                            printf("%s%s%s\t", KGRN, argv[i], RESET);
+                            printf("%s%s%s   ", KGRN, argv[i], RESET);
                         else if (statbuf->st_mode & S_IXUSR)
-                            printf("%s%s%s\t", KBLU, argv[i], RESET);
+                            printf("%s%s%s   ", KBLU, argv[i], RESET);
                         else
-                            printf("%s\t", argv[i]);
+                            printf("%s   ", argv[i]);
                     }
                     files = 1;
                 }

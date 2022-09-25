@@ -8,8 +8,6 @@ void disableRawMode()
 {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &og_termios) == -1)
     {
-        // perror("tcsetattr");
-        exit(1);
     }
 }
 
@@ -17,16 +15,12 @@ void enableRawMode()
 {
     if (tcgetattr(STDIN_FILENO, &og_termios) == -1)
     {
-        // perror("tcgetattr");
-        exit(1);
     }
     atexit(disableRawMode);
     struct termios raw = og_termios;
     raw.c_lflag &= ~(ECHO | ICANON);
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
     {
-        // perror("tcsetattr");
-        exit(1);
     }
 }
 
@@ -196,6 +190,7 @@ int changeIO(int inputfile, int outputfile)
         }
         infd = inputfile;
     }
+
     if (outputfile != -1)
     {
         if (dup2(STDOUT_FILENO, o_outfd) < 0)

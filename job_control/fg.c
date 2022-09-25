@@ -17,13 +17,17 @@ int fg(int argc, char **args)
 
     int pgpid = bgpid[jobno]->pgpid, pid = bgpid[jobno]->pid;
 
-    fgpid.procname = bgpid[jobno]->procname;
+    fgpid.procname = malloc(strlen(bgpid[jobno]->procname) + 1);
+    strcpy(fgpid.procname, bgpid[jobno]->procname);
     fgpid.pgpid = bgpid[jobno]->pgpid;
     fgpid.status = 1;
     fgpid.pid = bgpid[jobno]->pid;
-    fgpid.command = bgpid[jobno]->command;
+    fgpid.command = malloc(strlen(bgpid[jobno]->command) + 1);
+    strcpy(fgpid.command, bgpid[jobno]->command);
     fgpid.jobno = jobno;
 
+    free(bgpid[jobno]->command);
+    free(bgpid[jobno]->procname);
     free(bgpid[jobno]);
     bgpid[jobno] = NULL;
 

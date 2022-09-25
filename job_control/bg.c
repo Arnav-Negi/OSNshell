@@ -16,7 +16,7 @@ int bg(int argc, char **args)
     }
 
     int pid = bgpid[jobno]->pid;
-
+    bgpid[jobno]->status = 1;
     if (kill(pid, SIGCONT) == -1) {
         perror(KRED"error"RESET);
         return 1;

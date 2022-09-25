@@ -51,7 +51,7 @@ extern int outfd, infd, o_outfd, o_infd;
 extern int err_prompt, pipeflag, pipesleft, isrunning;
 extern long int prevcmd_time;
 extern procinfo fgpid;
-extern procinfo *bgpid[];
+extern procinfo *bgpid[], *piped_procs[];
 extern sysinfo *currsys;
 extern struct termios og_termios;
 

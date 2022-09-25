@@ -36,7 +36,7 @@ void ctrlZ_handler(int signum)
 
     tcsetpgrp(STDIN_FILENO, getpgid(getpid()));
     tcsetpgrp(STDOUT_FILENO, getpgid(getpid()));
-    // kill(fgpid.pid, SIGTSTP);
+
     newbg(fgpid.pid, fgpid.procname, fgpid.command, 0);
     return;
 }
@@ -58,6 +58,15 @@ void rembg(int signum)
     if (i == 1000)
     {
         notbg = 1;
+    }
+
+    for (int j = 0; j<MAX_PIPES; j++) {
+        if (piped_procs[j] != NULL && piped_procs[j]->pid == pid) {
+            pipesleft--;
+            free(piped_procs[j]);
+            piped_procs[j] = NULL;
+            break;
+        }
     }
 
     if (pid > 0)
@@ -84,16 +93,12 @@ void rembg(int signum)
                 printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
         }
 
-        if (isrunning == 0 && !notbg)
+        if (isrunning == 1 && notbg)
         {
-            long int temp = prevcmd_time;
-            prevcmd_time = -1;
-            prompt();
-            prevcmd_time = temp;
             isrunning = 0;
         }
     }
-    if (pid == pipeflag) pipesleft--;
+
     if (!notbg)
     {
         free(bgpid[i]->procname);

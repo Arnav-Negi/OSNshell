@@ -29,7 +29,7 @@ int autocomplete(char **line)
     path = malloc(strlen(*line) + 256);
     strcpy(path, &(*line)[end]);
     dirpath = malloc(strlen(*line) + 5);
-    strcpy(dirpath, path);
+    strncpy(dirpath, &(*line)[start], end - start);
     dirpath[end - start] = '\0';
 
     if (dirpath[0] == '\0')
@@ -75,10 +75,12 @@ int autocomplete(char **line)
             printf("%s\t", namelist[i]->d_name);
             free(namelist[i]);
         }
+        free(namelist);
     }
     else if (numdirs == 1) free(namelist[0]);
-    free(namelist);
+    // free(namelist);
     int i = 0;
+    end = strlen(*line);
     while (buffer[i] != '\0')
     {
         (*line)[end++] = buffer[i++];

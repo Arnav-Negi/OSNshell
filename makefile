@@ -5,7 +5,7 @@ DEPS := main.o history/history.o pinfo/pinfo.o \
 				job_control/bg.o signals/signal_handling.o \
 				helper/prompt.o helper/inputs.o helper/autosuggest.o
 CC := gcc
-CFLAGS := -o main -Wall -fsanitize=address -Wpedantic -g
+CFLAGS := -o main -Wall -Wpedantic -g
 
 $(DEPS): %.o: %.c
 

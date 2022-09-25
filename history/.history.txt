@@ -1,0 +1,20 @@
+as
+jobs
+fg 1
+./test
+jobs
+pinfo 
+pinfo 99719
+fg 1
+./test
+fg 1
+ls ./
+./test
+sig 1 9
+jobs
+clear
+cd asifjaionqaq
+quit
+ls | cat
+nice
+quit

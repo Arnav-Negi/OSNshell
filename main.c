@@ -10,7 +10,7 @@ long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
 
-procinfo *bgpid[1000] = {NULL};
+procinfo *bgpid[1000] = {NULL}, *piped_procs[MAX_PIPES] = {NULL};
 extern procinfo *bgpid[];
 
 // PROTOTYPES
@@ -23,6 +23,12 @@ int shell_loop();
 
 int createproc(int isbg, char *cmd, int argc, char **args, int ispipes)
 {
+    argc = parseIO(argc, args);
+    if (argc == -1)
+    {
+        return 1;
+    }
+
     if (args[0] == NULL)
     {
         printf("\n");
@@ -87,7 +93,8 @@ int createproc(int isbg, char *cmd, int argc, char **args, int ispipes)
     }
     else
     {
-        if (!ispipes) setpgid(pid, pid);
+        if (!ispipes)
+            setpgid(pid, pid);
 
         if (isbg == 1)
         {
@@ -101,19 +108,26 @@ int createproc(int isbg, char *cmd, int argc, char **args, int ispipes)
             signal(SIGTTIN, SIG_IGN);
             signal(SIGTTOU, SIG_IGN);
 
-            if (!ispipes)
-            {
-                tcsetpgrp(STDIN_FILENO, pid);
-                tcsetpgrp(STDOUT_FILENO, pid);
-            }
+            tcsetpgrp(STDIN_FILENO, pid);
+            tcsetpgrp(STDOUT_FILENO, pid);
 
             fgpid.status = 1;
             isrunning = 1;
-            // waitpid(pid, &status, WUNTRACED);
             while (isrunning)
             {
             }
-            isrunning = 0;
+            if (infd != -1)
+            {
+                close(infd);
+                infd = -1;
+                dup2(o_infd, STDIN_FILENO);
+            }
+            if (outfd != -1)
+            {
+                close(outfd);
+                outfd = -1;
+                dup2(o_outfd, STDOUT_FILENO);
+            }
             fgpid.pid = -1;
             free(fgpid.procname);
             free(fgpid.command);
@@ -140,16 +154,8 @@ int createproc(int isbg, char *cmd, int argc, char **args, int ispipes)
 
 int runcommand(int isbg, char *cmd, int argc, char **args)
 {
-    signal(SIGTSTP, SIG_DFL);
-    signal(SIGINT, SIG_DFL);
     char *temp;
     int status = 0;
-
-    argc = parseIO(argc, args);
-    if (argc == -1)
-    {
-        return 1;
-    }
 
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
     if (strcmp(args[0], "pwd") == 0)
@@ -195,7 +201,6 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
     }
     else
     {
-        // setpgid(0, 0);
         if (execvp(args[0], args) < 0)
         {
             perror(KRED "Command not found" RESET);
@@ -204,27 +209,11 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
         exit(0);
     }
     fflush(stdout);
-
-    if (infd != -1)
-    {
-        close(infd);
-        infd = -1;
-        dup2(o_infd, STDIN_FILENO);
-    }
-    if (outfd != -1)
-    {
-        close(outfd);
-        outfd = -1;
-        dup2(o_outfd, STDOUT_FILENO);
-    }
-
     return status;
 }
 
 int runpipes(int isbg, char *cmd, sysinfo *currsys)
 {
-    signal(SIGTTIN, SIG_IGN);
-    signal(SIGTTOU, SIG_IGN);
     int filepipe[MAX_PIPES][2], childpid, argc = 0, status;
     char **pipecmds, **args;
     int numpipes = 0;
@@ -241,7 +230,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         while (args[argc] != NULL)
             argc++;
 
-        status = createproc(isbg, cmd, argc, args, 0);
+        status = createproc(isbg, cmd, argc, args, isbg);
         free(args), free(pipecmds);
         return status;
     }
@@ -255,6 +244,8 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
     pipesleft = numpipes;
     if (!isbg)
         prevcmd_time = time(NULL);
+    signal(SIGTTIN, SIG_IGN);
+    signal(SIGTTOU, SIG_IGN);
     while (done < numpipes)
     {
         if (done != numpipes - 1 && pipe(filepipe[done]) == -1)
@@ -314,12 +305,26 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         }
         else
         {
-            if (done == 0)
-                pipeflag = childpid;
-            // parent process.
-            // close unused pipe fd.
             if (isbg)
                 newbg(childpid, args[0], cmd, 1);
+            if (done == 0)
+                pipeflag = childpid;
+            int pipeptr = 0;
+            while (pipeptr < MAX_PIPES)
+            {
+                if (piped_procs[pipeptr] == NULL)
+                {
+                    piped_procs[pipeptr] = malloc(sizeof(procinfo));
+                    piped_procs[pipeptr]->pgpid = pipeflag;
+                    piped_procs[pipeptr]->pid = childpid;
+                    break;
+                }
+                pipeptr++;
+            }
+
+            // parent process.
+            // close unused pipe fd.
+            
             if (done != numpipes - 1)
                 close(filepipe[done][1]);
             if (done > 0)
@@ -328,10 +333,9 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         free(args);
         done++;
     }
-    sleep(5);
-    // while (pipesleft)
-    // {
-    // }
+    while (pipesleft)
+    {
+    }
     tcsetpgrp(STDIN_FILENO, getpid());
     tcsetpgrp(STDOUT_FILENO, getpid());
     signal(SIGTTIN, SIG_DFL);
@@ -390,10 +394,8 @@ int shell_loop()
     int status = 0;
     do
     {
-        // line = malloc(200);
         prompt();
         input = take_input(currsys);
-        // if (fgets(line, 200, stdin) != NULL);
         if (input == NULL)
         {
             status = 2;
