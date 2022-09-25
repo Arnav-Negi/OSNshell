@@ -15,13 +15,13 @@ extern procinfo *bgpid[];
 
 // PROTOTYPES
 void rembg(int signum);
-int createproc(int isbg, char *cmd, int argc, char **args);
+int createproc(int isbg, char *cmd, int argc, char **args, int ispipes);
 int runcommand(int isbg, char *cmd, int argc, char **args);
 int runpipes(int isbg, char *cmd, sysinfo *currsys);
 int handle_inputs(char *line);
 int shell_loop();
 
-int createproc(int isbg, char *cmd, int argc, char **args)
+int createproc(int isbg, char *cmd, int argc, char **args, int ispipes)
 {
     if (args[0] == NULL)
     {
@@ -80,13 +80,14 @@ int createproc(int isbg, char *cmd, int argc, char **args)
 
     if (!pid)
     {
-        setpgid(0, 0);
+        if (!ispipes)
+            setpgid(0, 0);
         status = runcommand(isbg, cmd, argc, args);
         exit(status);
     }
     else
     {
-        setpgid(pid, pid);
+        if (!ispipes) setpgid(pid, pid);
 
         if (isbg == 1)
         {
@@ -96,18 +97,22 @@ int createproc(int isbg, char *cmd, int argc, char **args)
         {
             fgpid.pid = pid, fgpid.command = malloc(strlen(cmd) + 1), fgpid.status = 1, fgpid.procname = malloc(strlen(args[0]) + 1);
             strcpy(fgpid.procname, args[0]), strcpy(fgpid.command, cmd);
-            setpgid(pid, pid);
 
             signal(SIGTTIN, SIG_IGN);
             signal(SIGTTOU, SIG_IGN);
 
-            tcsetpgrp(STDIN_FILENO, pid);
-            tcsetpgrp(STDOUT_FILENO, pid);
+            if (!ispipes)
+            {
+                tcsetpgrp(STDIN_FILENO, pid);
+                tcsetpgrp(STDOUT_FILENO, pid);
+            }
 
             fgpid.status = 1;
             isrunning = 1;
             // waitpid(pid, &status, WUNTRACED);
-            while(isrunning) {}
+            while (isrunning)
+            {
+            }
             isrunning = 0;
             fgpid.pid = -1;
             free(fgpid.procname);
@@ -218,6 +223,8 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
 
 int runpipes(int isbg, char *cmd, sysinfo *currsys)
 {
+    signal(SIGTTIN, SIG_IGN);
+    signal(SIGTTOU, SIG_IGN);
     int filepipe[MAX_PIPES][2], childpid, argc = 0, status;
     char **pipecmds, **args;
     int numpipes = 0;
@@ -234,7 +241,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         while (args[argc] != NULL)
             argc++;
 
-        status = createproc(isbg, cmd, argc, args);
+        status = createproc(isbg, cmd, argc, args, 0);
         free(args), free(pipecmds);
         return status;
     }
@@ -286,6 +293,8 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             else
             {
                 setpgrp();
+                tcsetpgrp(STDIN_FILENO, getpid());
+                tcsetpgrp(STDOUT_FILENO, getpid());
                 changeIO(-1, filepipe[done][1]);
                 close(filepipe[done][0]);
             }
@@ -294,7 +303,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             while (args[argc] != NULL)
                 argc++;
 
-            status = createproc(0, cmd, argc, args);
+            status = createproc(0, cmd, argc, args, 1);
             free(args);
             // Closing pipe.
             if (done != numpipes - 1)
@@ -305,7 +314,8 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         }
         else
         {
-            if (done == 0) pipeflag = childpid;
+            if (done == 0)
+                pipeflag = childpid;
             // parent process.
             // close unused pipe fd.
             if (isbg)
@@ -318,9 +328,14 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         free(args);
         done++;
     }
-    while (pipesleft)
-    {
-    }
+    sleep(5);
+    // while (pipesleft)
+    // {
+    // }
+    tcsetpgrp(STDIN_FILENO, getpid());
+    tcsetpgrp(STDOUT_FILENO, getpid());
+    signal(SIGTTIN, SIG_DFL);
+    signal(SIGTTOU, SIG_DFL);
     fflush(stdin), fflush(stdout);
     free(pipecmds);
     return 0;
@@ -371,12 +386,19 @@ int handle_inputs(char *line)
 int shell_loop()
 {
     char *line, **input;
+
     int status = 0;
-    
     do
     {
+        // line = malloc(200);
         prompt();
         input = take_input(currsys);
+        // if (fgets(line, 200, stdin) != NULL);
+        if (input == NULL)
+        {
+            status = 2;
+            break;
+        }
         line = *input;
         free(input);
         isrunning = 0;

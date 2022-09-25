@@ -1,20 +1,20 @@
-cd builtin
-
-pwd
 quit
-cd builtin
-pwd
-fg 1
-
-quit
-cd builtin
-quit
-cd builtin
-pwd
-jobs
-nano &
-jobs
-fg 1
-ps -v
-pinfo 65996
+cat
 ls | cat
+echo something | cat
+ls | cat
+head new.sh | cat
+ls | cat
+cat
+
+ls
+
+quit
+
+ls
+cd ..
+ls & cd
+
+echo lll | cat
+ls | cat
+ls

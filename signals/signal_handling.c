@@ -41,14 +41,6 @@ void ctrlZ_handler(int signum)
     return;
 }
 
-void ctrlC_handler(int signum)
-{
-}
-
-void ctrlD_handler(int signum)
-{
-}
-
 void rembg(int signum)
 {
     int status, notbg = 0;
@@ -78,10 +70,9 @@ void rembg(int signum)
                 ctrlZ_handler(1);
                 break;
             case SIGINT:
-                ctrlC_handler(1);
                 break;
             default:
-                printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
+                // printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
                 break;
             }
         }
@@ -93,7 +84,7 @@ void rembg(int signum)
                 printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
         }
 
-        if (isrunning == 1 && notbg)
+        if (isrunning == 0 && !notbg)
         {
             long int temp = prevcmd_time;
             prevcmd_time = -1;
@@ -114,7 +105,6 @@ void rembg(int signum)
 
 void DoNothing(int signum)
 {
-
     printf("\n");
     prompt();
 }

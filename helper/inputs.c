@@ -8,7 +8,7 @@ void disableRawMode()
 {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &og_termios) == -1)
     {
-        perror("tcsetattr");
+        // perror("tcsetattr");
         exit(1);
     }
 }
@@ -17,15 +17,15 @@ void enableRawMode()
 {
     if (tcgetattr(STDIN_FILENO, &og_termios) == -1)
     {
-        perror("tcgetattr");
+        // perror("tcgetattr");
         exit(1);
     }
     atexit(disableRawMode);
     struct termios raw = og_termios;
-    raw.c_lflag &= ~(ICANON | ECHO);
+    raw.c_lflag &= ~(ECHO | ICANON);
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
     {
-        perror("tcsetattr");
+        // perror("tcsetattr");
         exit(1);
     }
 }
@@ -137,15 +137,17 @@ char **take_input(sysinfo *currsys)
                 break;
             case 4: // EOT (Ctrl D)
                 free((*input));
-                ctrlD_handler(1);
+                free(input);
+                return NULL;
                 break;
-            case 127:   // backspace
-                if (ptr > 0) {
+            case 127: // backspace
+                if (ptr > 0)
+                {
                     (*input)[--ptr] = '\0';
                     printf("\b \b");
                 }
                 break;
-            case 9:     // tab, autosuggest
+            case 9: // tab, autosuggest
                 (*input)[ptr] = '\0';
                 autocomplete(input);
                 ptr = strlen(*input);
