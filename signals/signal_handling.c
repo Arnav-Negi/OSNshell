@@ -1,7 +1,7 @@
 #include "signal_handling.h"
 #include "../helper/prompt.h"
 
-int newbg(int pid, char *proccess_name, char *command)
+int newbg(int pid, char *proccess_name, char *command, int status)
 {
     if (pid == 0)
         return 0;
@@ -17,7 +17,7 @@ int newbg(int pid, char *proccess_name, char *command)
     printf("[%d] %d\n", i + 1, pid);
     bgpid[i] = (procinfo *)malloc(sizeof(procinfo));
     bgpid[i]->pid = pid;
-    bgpid[i]->status = 1;
+    bgpid[i]->status = status;
     bgpid[i]->jobno = i + 1;
     bgpid[i]->procname = (char *)malloc(strlen(proccess_name) + 1);
     bgpid[i]->command = (char *)malloc(strlen(command) + 1);
@@ -31,16 +31,13 @@ int newbg(int pid, char *proccess_name, char *command)
 void ctrlZ_handler(int signum)
 {
     // Stop current process, send to bg.
-    printf("hello");
     if (fgpid.pid == -1)
         return;
 
     tcsetpgrp(STDIN_FILENO, getpgid(getpid()));
     tcsetpgrp(STDOUT_FILENO, getpgid(getpid()));
-    kill(fgpid.pid, SIGTSTP);
-    newbg(fgpid.pid, fgpid.procname, fgpid.command);
-    fgpid.pid = -1;
-    free(fgpid.command), free(fgpid.procname);
+    // kill(fgpid.pid, SIGTSTP);
+    newbg(fgpid.pid, fgpid.procname, fgpid.command, 0);
     return;
 }
 
@@ -54,13 +51,9 @@ void ctrlD_handler(int signum)
 
 void rembg(int signum)
 {
-    int status;
-    int pid = waitpid(-1, &status, WNOHANG);
-    if (pid == lastpipepid)
-    {
-        pipeflag = 0;
-        lastpipepid = -1;
-    }
+    int status, notbg = 0;
+    int pid = waitpid(-1, &status, WUNTRACED);
+
     int i = 0;
     if (pid == 0)
         return;
@@ -72,31 +65,56 @@ void rembg(int signum)
     }
     if (i == 1000)
     {
-        return;
+        notbg = 1;
     }
 
     if (pid > 0)
     {
-        if (WIFSIGNALED(status))
+        if (WIFSTOPPED(status) && notbg)
         {
-            printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
+            switch (WSTOPSIG(status))
+            {
+            case SIGTSTP:
+                ctrlZ_handler(1);
+                break;
+            case SIGINT:
+                ctrlC_handler(1);
+                break;
+            default:
+                printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
+                break;
+            }
         }
-        if (WIFEXITED(status))
+        else if (!notbg && WIFEXITED(status))
         {
-            printf(KGRN "\n%s with pid %d exited normally\n" RESET, bgpid[i]->procname, pid);
+            if (WEXITSTATUS(status) == 0)
+                printf(KGRN "\n%s with pid %d exited normally\n" RESET, bgpid[i]->procname, pid);
+            else
+                printf(KRED "\n%s with pid %d exited abnormally\n" RESET, bgpid[i]->procname, pid);
         }
-        if (isprompt)
+
+        if (isrunning == 1 && notbg)
         {
             long int temp = prevcmd_time;
             prevcmd_time = -1;
             prompt();
             prevcmd_time = temp;
-            isprompt = 0;
+            isrunning = 0;
         }
     }
+    if (pid == pipeflag) pipesleft--;
+    if (!notbg)
+    {
+        free(bgpid[i]->procname);
+        free(bgpid[i]->command);
+        free(bgpid[i]);
+        bgpid[i] = NULL;
+    }
+}
 
-    free(bgpid[i]->procname);
-    free(bgpid[i]->command);
-    free(bgpid[i]);
-    bgpid[i] = NULL;
+void DoNothing(int signum)
+{
+
+    printf("\n");
+    prompt();
 }

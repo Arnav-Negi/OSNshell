@@ -1,6 +1,6 @@
 #include "signal.h"
 
-int sig(procinfo *arr[], int argc, char **args)
+int sig(int argc, char **args)
 {
     int pid, signum, jno;
 
@@ -10,12 +10,12 @@ int sig(procinfo *arr[], int argc, char **args)
     }
     jno = strtol(args[1], NULL, 10) - 1;
     signum = strtol(args[2], NULL, 10);
-    if (arr[jno] == NULL) {
+    if (bgpid[jno] == NULL) {
         printf(KRED"Error: "RESET "Job number doesn't exist.\n");
         return 1;
     }
 
-    pid = arr[jno]->pid;
+    pid = bgpid[jno]->pid;
 
     if (kill(pid, signum) < 0) {
         perror(KRED"Sig error"RESET);

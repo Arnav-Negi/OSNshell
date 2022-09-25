@@ -12,7 +12,7 @@ int jobcmp(const void *j1, const void *j2) {
     else return 0;
 }
 
-int jobs(procinfo *array[], int argc, char **args)
+int jobs(int argc, char **args)
 {
     int i = 1, flag = 0;
 
@@ -37,10 +37,10 @@ int jobs(procinfo *array[], int argc, char **args)
     i = 0;
     while (i < 1000)
     {
-        if (array[i] != NULL)
+        if (bgpid[i] != NULL)
         {
-            if ((array[i]->status == 1 && (flag & 1)) || (array[i]->status == 0 && (flag&2)))
-                display[displaycnt++] = array[i];
+            if ((bgpid[i]->status == 1 && (flag & 1)) || (bgpid[i]->status == 0 && (flag&2)))
+                display[displaycnt++] = bgpid[i];
         }
         i++;
     }

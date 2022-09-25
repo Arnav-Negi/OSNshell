@@ -1,20 +1,20 @@
-sleep 5
-ps -v
-pinfo 13669
-jobs
-quit
-discover
+cd builtin
 
-jobs
-discover
-discover ~
-discover /home
-sleep 10
+pwd
 quit
-nano 
-fg
-jobs
-ps -v
-kill -9 14531
-ps -v
+cd builtin
+pwd
+fg 1
+
 quit
+cd builtin
+quit
+cd builtin
+pwd
+jobs
+nano &
+jobs
+fg 1
+ps -v
+pinfo 65996
+ls | cat

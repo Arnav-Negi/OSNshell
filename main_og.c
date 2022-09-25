@@ -1,73 +1,27 @@
 #define __MAIN__
 #include "headers.h"
 
-struct termios og_termios;
 extern int errno;
 
-int err_prompt, pipeflag, isrunning, pipesleft;
+int err_prompt, pipeflag, lastpipepid, isprompt;
 procinfo fgpid;
 long int prevcmd_time = -1;
 char *prevcd;
 sysinfo *currsys;
 
 procinfo *bgpid[1000] = {NULL};
-extern procinfo *bgpid[];
+extern procinfo * bgpid[];
 
 // PROTOTYPES
 void rembg(int signum);
 int createproc(int isbg, char *cmd, int argc, char **args);
-int runcommand(int isbg, char *cmd, int argc, char **args);
+int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild);
 int runpipes(int isbg, char *cmd, sysinfo *currsys);
 int handle_inputs(char *line);
 int shell_loop();
 
 int createproc(int isbg, char *cmd, int argc, char **args)
 {
-    if (args[0] == NULL)
-    {
-        printf("\n");
-        prompt();
-        return 0;
-    }
-    if (strcmp(args[0], "cd") == 0)
-    {
-        err_prompt = cd(args, currsys);
-        return 0;
-    }
-    if (strcmp(args[0], "quit") == 0 || strcmp(args[0], "exit") == 0)
-    {
-        return 2;
-    }
-    else if (strcmp(args[0], "jobs") == 0)
-    {
-        err_prompt = jobs(argc, args);
-        return 0;
-    }
-    else if (strcmp(args[0], "sig") == 0)
-    {
-        err_prompt = sig(argc, args);
-        return 0;
-    }
-    else if (strcmp(args[0], "fg") == 0)
-    {
-        err_prompt = fg(argc, args);
-        return 0;
-    }
-    else if (strcmp(args[0], "bg") == 0)
-    {
-        err_prompt = bg(argc, args);
-        return 0;
-    }
-    if (!isbg)
-    {
-        prevcmd_time = time(NULL);
-        if (prevcmd_time == -1)
-        {
-            perror(KRED "Time error" RESET);
-            exit(1);
-        }
-    }
-
     int parentpid = getpid();
     int pid = fork();
     int status;
@@ -81,8 +35,12 @@ int createproc(int isbg, char *cmd, int argc, char **args)
     if (!pid)
     {
         setpgid(0, 0);
-        status = runcommand(isbg, cmd, argc, args);
-        exit(status);
+        if (execvp(args[0], args) < 0)
+        {
+            perror(KRED "Command not found" RESET);
+            exit(1);
+        }
+        exit(0);
     }
     else
     {
@@ -90,7 +48,7 @@ int createproc(int isbg, char *cmd, int argc, char **args)
 
         if (isbg == 1)
         {
-            newbg(pid, args[0], cmd, 1);
+            newbg(pid, args[0], cmd);
         }
         else
         {
@@ -103,12 +61,9 @@ int createproc(int isbg, char *cmd, int argc, char **args)
 
             tcsetpgrp(STDIN_FILENO, pid);
             tcsetpgrp(STDOUT_FILENO, pid);
-
+            
             fgpid.status = 1;
-            isrunning = 1;
-            // waitpid(pid, &status, WUNTRACED);
-            while(isrunning) {}
-            isrunning = 0;
+            waitpid(pid, &status, WUNTRACED);
             fgpid.pid = -1;
             free(fgpid.procname);
             free(fgpid.command);
@@ -133,12 +88,24 @@ int createproc(int isbg, char *cmd, int argc, char **args)
     return 0;
 }
 
-int runcommand(int isbg, char *cmd, int argc, char **args)
+int runcommand(int isbg, char *cmd, int argc, char **args, sysinfo *currsys, int ischild)
 {
-    signal(SIGTSTP, SIG_DFL);
-    signal(SIGINT, SIG_DFL);
     char *temp;
     int status = 0;
+    if (args[0] == NULL)
+    {
+        return 0;
+    }
+
+    if (!isbg)
+    {
+        prevcmd_time = time(NULL);
+        if (prevcmd_time == -1)
+        {
+            perror(KRED "Time error" RESET);
+            exit(1);
+        }
+    }
 
     argc = parseIO(argc, args);
     if (argc == -1)
@@ -147,7 +114,11 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
     }
 
     //     args[0] gives command, rest are arguments.Handle commands here using strcmp.
-    if (strcmp(args[0], "pwd") == 0)
+    if (strcmp(args[0], "cd") == 0)
+    {
+        err_prompt = cd(args, currsys);
+    }
+    else if (strcmp(args[0], "pwd") == 0)
     {
         temp = pwd();
         printf("%s\n", temp);
@@ -180,6 +151,22 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
             free(endptr);
         }
     }
+    else if (strcmp(args[0], "jobs") == 0)
+    {
+        err_prompt = jobs(bgpid, argc, args);
+    }
+    else if (strcmp(args[0], "sig") == 0)
+    {
+        err_prompt = sig(bgpid, argc, args);
+    }
+    else if (strcmp(args[0], "fg") == 0)
+    {
+        err_prompt = fg(argc, args, bgpid);
+    }
+    else if (strcmp(args[0], "bg") == 0)
+    {
+        err_prompt = bg(argc, args, bgpid);
+    }
     else if (strcmp(args[0], "discover") == 0)
     {
         err_prompt = discover(argc, args, currsys);
@@ -188,15 +175,25 @@ int runcommand(int isbg, char *cmd, int argc, char **args)
     {
         print_history(currsys);
     }
+    else if (strcmp(args[0], "quit") == 0 || strcmp(args[0], "exit") == 0)
+    {
+        return 2;
+    }
     else
     {
-        // setpgid(0, 0);
-        if (execvp(args[0], args) < 0)
+        if (!ischild)
+            status = createproc(isbg, cmd, argc, args);
+        else
         {
-            perror(KRED "Command not found" RESET);
-            exit(1);
+            // dont fork.
+            setpgid(0, 0);
+            if (execvp(args[0], args) < 0)
+            {
+                perror(KRED "Command not found" RESET);
+                exit(1);
+            }
+            exit(0);
         }
-        exit(0);
     }
     fflush(stdout);
 
@@ -234,7 +231,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         while (args[argc] != NULL)
             argc++;
 
-        status = createproc(isbg, cmd, argc, args);
+        status = runcommand(isbg, cmd, argc, args, currsys, 0);
         free(args), free(pipecmds);
         return status;
     }
@@ -245,7 +242,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         free(pipecmds);
         return 1;
     }
-    pipesleft = numpipes;
+    pipeflag = 1;
     if (!isbg)
         prevcmd_time = time(NULL);
     while (done < numpipes)
@@ -272,7 +269,6 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
 
             if (done != 0)
             {
-                setpgid(getpid(), pipeflag);
                 if (done != numpipes - 1)
                 {
                     changeIO(filepipe[done - 1][0], filepipe[done][1]);
@@ -285,7 +281,6 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             }
             else
             {
-                setpgrp();
                 changeIO(-1, filepipe[done][1]);
                 close(filepipe[done][0]);
             }
@@ -294,7 +289,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
             while (args[argc] != NULL)
                 argc++;
 
-            status = createproc(0, cmd, argc, args);
+            status = runcommand(0, cmd, argc, args, currsys, 1);
             free(args);
             // Closing pipe.
             if (done != numpipes - 1)
@@ -305,11 +300,12 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         }
         else
         {
-            if (done == 0) pipeflag = childpid;
             // parent process.
             // close unused pipe fd.
             if (isbg)
-                newbg(childpid, args[0], cmd, 1);
+                newbg(childpid, args[0], cmd);
+            if (done == numpipes - 1)
+                lastpipepid = childpid;
             if (done != numpipes - 1)
                 close(filepipe[done][1]);
             if (done > 0)
@@ -318,7 +314,7 @@ int runpipes(int isbg, char *cmd, sysinfo *currsys)
         free(args);
         done++;
     }
-    while (pipesleft)
+    while (pipeflag)
     {
     }
     fflush(stdin), fflush(stdout);
@@ -355,9 +351,9 @@ int handle_inputs(char *line)
         while (requests[j] != NULL)
         {
             if (bg > 0 ? totalbg - bg + 1 : 0)
-                isrunning = 1;
+                isprompt = 1;
             else
-                isrunning = 0;
+                isprompt = 0;
             status = runpipes((bg > 0 ? totalbg - bg + 1 : 0), requests[j], currsys);
             bg--;
             j++;
@@ -370,16 +366,14 @@ int handle_inputs(char *line)
 
 int shell_loop()
 {
-    char *line, **input;
+    char *line;
     int status = 0;
-    
+
     do
     {
         prompt();
-        input = take_input(currsys);
-        line = *input;
-        free(input);
-        isrunning = 0;
+        line = take_input(currsys);
+        isprompt = 0;
         status = handle_inputs(line);
         free(line);
     } while (status != 2);
@@ -389,14 +383,14 @@ int shell_loop()
 int main(int argc, char **argv)
 {
     signal(SIGCHLD, rembg);
-    signal(SIGTSTP, DoNothing);
-    signal(SIGINT, DoNothing);
+    signal(SIGTSTP, ctrlZ_handler);
+    // signal(SIGINT, ctrlC_handler);
 
     err_prompt = 0;
     fgpid.pid = -1;
     int retval = 0;
     infd = -1, outfd = -1, o_outfd = 500, o_infd = 501;
-    isrunning = 0;
+    isprompt = 1;
 
     currsys = (sysinfo *)malloc(sizeof(sysinfo));
     currsys->rel_path = (char *)malloc(sizeof(char) * 1024);
@@ -435,8 +429,7 @@ int main(int argc, char **argv)
     free(utsbuf);
     free(prevcd);
     free(currsys);
-    if (fgpid.pid != -1)
-    {
+    if (fgpid.pid != -1) {
         free(fgpid.procname), free(fgpid.command);
     }
     if (retval == 2)

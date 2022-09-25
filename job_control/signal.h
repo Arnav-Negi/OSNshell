@@ -1,2 +1,2 @@
 #include "../included.h"
-int sig(procinfo *arr[], int argc, char ** args);
+int sig(int argc, char ** args);

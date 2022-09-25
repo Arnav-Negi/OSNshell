@@ -7,8 +7,11 @@ void func(int signum)
 
 int main()
 {
-    printf("start\n");
-    signal(SIGCHLD, func);
-    kill(getpid(), SIGCHLD);
-    printf("after kill.\n");
+    char name[200];
+    while (1)
+    {
+        printf("Enter name ");
+        scanf("%s", name);
+        printf("Hello %s", name);
+    }
 }

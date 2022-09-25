@@ -1,5 +1,34 @@
 #include "inputs.h"
+#include "../signals/signal_handling.h"
+#include "autosuggest.h"
+
 extern int errno, outfd, infd, o_outfd, o_infd;
+
+void disableRawMode()
+{
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &og_termios) == -1)
+    {
+        perror("tcsetattr");
+        exit(1);
+    }
+}
+
+void enableRawMode()
+{
+    if (tcgetattr(STDIN_FILENO, &og_termios) == -1)
+    {
+        perror("tcgetattr");
+        exit(1);
+    }
+    atexit(disableRawMode);
+    struct termios raw = og_termios;
+    raw.c_lflag &= ~(ICANON | ECHO);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    {
+        perror("tcsetattr");
+        exit(1);
+    }
+}
 
 char *convert_from_tilde(char *pathname, sysinfo *currsys)
 {
@@ -73,48 +102,79 @@ char **tokenize(char *line, char *delim)
     return commands;
 }
 
-char *take_input(sysinfo *currsys)
+char **take_input(sysinfo *currsys)
 {
     // Take input and handle buffer OF. Parse multiple inputs.
     int BUF_SIZE = DEF_BUF_SIZE;
     int ptr = 0;
     char c;
-    char *input = (char *)malloc(sizeof(char) * BUF_SIZE);
+    char **input = malloc(sizeof(char *));
+    (*input) = (char *)malloc(sizeof(char) * BUF_SIZE);
 
-    if (input == NULL)
+    if ((*input) == NULL)
     {
-        perror(KRED "out of memory while taking input.\n" RESET);
+        perror(KRED "out of memory while taking (*input).\n" RESET);
+        free(input);
         exit(1);
     }
-
-    while (1)
+    setbuf(stdout, NULL);
+    enableRawMode();
+    while (read(STDIN_FILENO, &c, 1) == 1)
     {
-        scanf("%c", &c);
-
-        if (c == EOF || c == '\n')
+        if (iscntrl(c))
         {
-            input[ptr] = '\0';
-            return input;
+            switch (c)
+            {
+            case 10: // newline
+                (*input)[ptr++] = '\0';
+                printf("\n");
+                disableRawMode();
+                return input;
+                break;
+            case 27: // arrow key
+                read(STDIN_FILENO, &c, 1);
+                read(STDIN_FILENO, &c, 1);
+                break;
+            case 4: // EOT (Ctrl D)
+                free((*input));
+                ctrlD_handler(1);
+                break;
+            case 127:   // backspace
+                if (ptr > 0) {
+                    (*input)[--ptr] = '\0';
+                    printf("\b \b");
+                }
+                break;
+            case 9:     // tab, autosuggest
+                (*input)[ptr] = '\0';
+                autocomplete(input);
+                ptr = strlen(*input);
+                break;
+            default:
+                break;
+            }
         }
         else
         {
-            input[ptr++] = c;
+            (*input)[ptr++] = c;
+            printf("%c", c);
         }
 
         // dymnamic memory alloc
-        if (ptr >= BUF_SIZE)
+        if (ptr >= BUF_SIZE - 3)
         {
             BUF_SIZE += BUF_SZ_INC;
-            input = realloc(input, BUF_SIZE);
+            (*input) = realloc((*input), BUF_SIZE);
 
-            if (input == NULL)
+            if ((*input) == NULL)
             {
-                perror(KRED "out of memory while taking input.\n" RESET);
+                perror(KRED "out of memory while taking (*input).\n" RESET);
+                free(input);
                 exit(1);
             }
         }
     }
-
+    disableRawMode();
     return input;
 }
 
@@ -166,7 +226,8 @@ int parseIO(int argc, char **args)
                 perror(KRED "Redirect error" RESET);
                 return -1;
             }
-            if (changeIO(-1, outfile) == 1) return -1;
+            if (changeIO(-1, outfile) == 1)
+                return -1;
             omode = 0;
         }
         else if (omode == 2)
@@ -176,7 +237,8 @@ int parseIO(int argc, char **args)
                 perror(KRED "Redirect error" RESET);
                 return -1;
             }
-            if (changeIO(-1, outfile) == 1) return -1;
+            if (changeIO(-1, outfile) == 1)
+                return -1;
             omode = 0;
         }
         else if (imode)
@@ -186,7 +248,8 @@ int parseIO(int argc, char **args)
                 perror(KRED "Redirect error" RESET);
                 return -1;
             }
-            if (changeIO(infile, -1) == 1) return -1;
+            if (changeIO(infile, -1) == 1)
+                return -1;
             imode = 0;
         }
         else if (strcmp(args[i], ">") == 0)
@@ -195,7 +258,8 @@ int parseIO(int argc, char **args)
             omode = 2;
         else if (strcmp(args[i], "<") == 0)
             imode = 1;
-        else {
+        else
+        {
             args[newargc++] = args[i];
         }
     }
