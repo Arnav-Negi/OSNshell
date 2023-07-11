@@ -1,5 +1,4 @@
 #include "signal_handling.h"
-#include "../helper/prompt.h"
 
 int newbg(int pid, char *proccess_name, char *command, int status)
 {

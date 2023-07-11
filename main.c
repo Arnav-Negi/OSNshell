@@ -4,6 +4,7 @@
 struct termios og_termios;
 extern int errno;
 
+int outfd, infd, o_outfd, o_infd;
 int err_prompt, pipeflag, isrunning, pipesleft;
 procinfo fgpid;
 long int prevcmd_time = -1;
@@ -11,7 +12,7 @@ char *prevcd;
 sysinfo *currsys;
 
 procinfo *bgpid[1000] = {NULL}, *piped_procs[MAX_PIPES] = {NULL};
-extern procinfo *bgpid[];
+
 
 // PROTOTYPES
 void rembg(int signum);

@@ -1,5 +1,4 @@
-#include "../included.h"
-#include "../helper/inputs.h"
+#include "pinfo.h"
 
 int pinfo(int pid, sysinfo *currsys)
 {

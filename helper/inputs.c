@@ -1,6 +1,4 @@
 #include "inputs.h"
-#include "../signals/signal_handling.h"
-#include "autosuggest.h"
 
 extern int errno, outfd, infd, o_outfd, o_infd;
 

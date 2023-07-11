@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../included.h"
 
 void print_history(sysinfo *currsys);

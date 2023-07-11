@@ -1,13 +1,3 @@
-as
-jobs
-fg 1
-./test
-jobs
-pinfo 
-pinfo 99719
-fg 1
-./test
-fg 1
 ls ./
 ./test
 sig 1 9
@@ -17,4 +7,14 @@ cd asifjaionqaq
 quit
 ls | cat
 nice
+quit
+hi
+ls
+cd buibuiltin
+quit
+cd  builtin
+ls
+ls -la
+ls -a
+fg
 quit

@@ -1,5 +1,4 @@
 #include "autosuggest.h"
-#include "prompt.h"
 
 char *path, *dirpath;
 int start, end;
@@ -80,7 +79,6 @@ int autocomplete(char **line)
     else if (numdirs == 1) free(namelist[0]);
     // free(namelist);
     int i = 0;
-    end = strlen(*line);
     while (buffer[i] != '\0')
     {
         (*line)[end++] = buffer[i++];

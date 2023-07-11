@@ -46,7 +46,6 @@ typedef struct _procinfo {
     int pid, pgpid, jobno, status; // 1 if running, 0 if stopped
 } procinfo;
 
-int outfd, infd, o_outfd, o_infd;
 extern int outfd, infd, o_outfd, o_infd;
 extern int err_prompt, pipeflag, pipesleft, isrunning;
 extern long int prevcmd_time;

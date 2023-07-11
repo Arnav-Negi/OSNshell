@@ -1,6 +1,6 @@
 #include "../included.h"
 #include "ls.h"
-struct stat *statbuf;
+struct stat *statbufls;
 char *months[] = {"January  ", "February ", "March    ", "April    ", "May      ", "June     ", "July     ", "August   ", "September", "October  ", "November ", "December "};
 
 int filter(const struct dirent *a)
@@ -12,58 +12,58 @@ void printentry(char *filepath, char *filename)
 {
     struct passwd *temppwd;
     struct group *tempgrp;
-    stat(filepath, statbuf);
-    tempgrp = getgrgid(statbuf->st_gid);
-    temppwd = getpwuid(statbuf->st_uid);
-    if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
+    stat(filepath, statbufls);
+    tempgrp = getgrgid(statbufls->st_gid);
+    temppwd = getpwuid(statbufls->st_uid);
+    if ((statbufls->st_mode & S_IFMT) == S_IFDIR)
         printf("d");
     else
         printf("-");
-    if (statbuf->st_mode & S_IRUSR)
+    if (statbufls->st_mode & S_IRUSR)
         printf("r");
     else
         printf("-");
-    if (statbuf->st_mode & S_IWUSR)
+    if (statbufls->st_mode & S_IWUSR)
         printf("w");
     else
         printf("-");
-    if (statbuf->st_mode & S_IXUSR)
+    if (statbufls->st_mode & S_IXUSR)
         printf("x");
     else
         printf("-");
-    if (statbuf->st_mode & S_IRGRP)
+    if (statbufls->st_mode & S_IRGRP)
         printf("r");
     else
         printf("-");
-    if (statbuf->st_mode & S_IWGRP)
+    if (statbufls->st_mode & S_IWGRP)
         printf("w");
     else
         printf("-");
-    if (statbuf->st_mode & S_IXGRP)
+    if (statbufls->st_mode & S_IXGRP)
         printf("x");
     else
         printf("-");
-    if (statbuf->st_mode & S_IROTH)
+    if (statbufls->st_mode & S_IROTH)
         printf("r");
     else
         printf("-");
-    if (statbuf->st_mode & S_IWOTH)
+    if (statbufls->st_mode & S_IWOTH)
         printf("w");
     else
         printf("-");
-    if (statbuf->st_mode & S_IXOTH)
+    if (statbufls->st_mode & S_IXOTH)
         printf("x");
     else
         printf("-");
     printf("\t");
-    printf("%lu\t", statbuf->st_nlink);
+    printf("%lu\t", statbufls->st_nlink);
     printf("%s\t%s\t", temppwd->pw_name, tempgrp->gr_name);
-    printf("%ld\t", statbuf->st_size);
-    struct tm *time = localtime(&(statbuf->st_mtim.tv_sec));
+    printf("%ld\t", statbufls->st_size);
+    struct tm *time = localtime(&(statbufls->st_mtim.tv_sec));
     printf("%s\t%d\t%d:%d\t", months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min);
-    if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
+    if ((statbufls->st_mode & S_IFMT) == S_IFDIR)
         printf("%s%s%s\n", KGRN, filename, RESET);
-    else if (statbuf->st_mode & S_IXUSR)
+    else if (statbufls->st_mode & S_IXUSR)
         printf("%s%s%s\n", KBLU, filename, RESET);
     else
         printf("%s\n", filename);
@@ -75,7 +75,7 @@ void printsingledir(int flag, char *dirname)
     int namelen = strlen(dirname), total = 0;
     strcpy(filepath, dirname);
 
-    if (statbuf == NULL)
+    if (statbufls == NULL)
     {
         printf(KRED "ls %s: Out of memory.\n" RESET, dirname);
         return;
@@ -93,8 +93,8 @@ void printsingledir(int flag, char *dirname)
         filepath[namelen] = '\0';
         strcat(filepath, "/");
         strcat(filepath, namelist[i]->d_name);
-        stat(filepath, statbuf);
-        total += statbuf->st_blocks / 2;
+        stat(filepath, statbufls);
+        total += statbufls->st_blocks / 2;
     }
 
     if (flag & 2)
@@ -118,10 +118,10 @@ void printsingledir(int flag, char *dirname)
             strcat(filepath, "/");
             strcat(filepath, namelist[i]->d_name);
 
-            stat(filepath, statbuf);
-            if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
+            stat(filepath, statbufls);
+            if ((statbufls->st_mode & S_IFMT) == S_IFDIR)
                 printf("%s%s%s   ", KGRN, namelist[i]->d_name, RESET);
-            else if (statbuf->st_mode & S_IXUSR)
+            else if (statbufls->st_mode & S_IXUSR)
                 printf("%s%s%s   ", KBLU, namelist[i]->d_name, RESET);
             else
                 printf("%s   ", namelist[i]->d_name);
@@ -140,7 +140,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
     strcpy(tildefile, currsys->home_dir);
     int i = 1, j = 0;
     int flag = 0, flagcnt = 0, files = 0;
-    statbuf = malloc(sizeof(struct stat));
+    statbufls = malloc(sizeof(struct stat));
 
     //  flag 10 for -l, 01 for -a and 11 for -la or -al
     while (argv[i] != NULL)
@@ -186,7 +186,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                 strcat(tildefile, &(argv[i][1]));
                 if ((tempdir = opendir(tildefile)) == NULL)
                 {
-                    if (stat(tildefile, statbuf) == -1)
+                    if (stat(tildefile, statbufls) == -1)
                         printf(KRED "ls: cannot access '%s'" RESET ": No such file or directory\n", tildefile);
                 }
                 free(tempdir);
@@ -196,7 +196,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
 
             else if ((tempdir = opendir(argv[i])) == NULL)
             {
-                if (stat(argv[i], statbuf) == -1)
+                if (stat(argv[i], statbufls) == -1)
                     printf(KRED "ls: cannot access '%s'" RESET ": No such file or directory\n", argv[i]);
             }
             free(tempdir);
@@ -214,7 +214,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                 strcat(tildefile, &(argv[i][1]));
                 if ((tempdir = opendir(tildefile)) == NULL)
                 {
-                    if (stat(tildefile, statbuf) != -1)
+                    if (stat(tildefile, statbufls) != -1)
                     {
                         if (flag & 2)
                         {
@@ -222,9 +222,9 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                         }
                         else
                         {
-                            if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
+                            if ((statbufls->st_mode & S_IFMT) == S_IFDIR)
                                 printf("%s%s%s  ", KGRN, tildefile, RESET);
-                            else if (statbuf->st_mode & S_IXUSR)
+                            else if (statbufls->st_mode & S_IXUSR)
                                 printf("%s%s%s  ", KBLU, tildefile, RESET);
                             else
                                 printf("%s  ", tildefile);
@@ -238,7 +238,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
 
             else if ((tempdir = opendir(argv[i])) == NULL)
             {
-                if (stat(argv[i], statbuf) != -1)
+                if (stat(argv[i], statbufls) != -1)
                 {
                     if (flag & 2)
                     {
@@ -246,9 +246,9 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
                     }
                     else
                     {
-                        if ((statbuf->st_mode & S_IFMT) == S_IFDIR)
+                        if ((statbufls->st_mode & S_IFMT) == S_IFDIR)
                             printf("%s%s%s   ", KGRN, argv[i], RESET);
-                        else if (statbuf->st_mode & S_IXUSR)
+                        else if (statbufls->st_mode & S_IXUSR)
                             printf("%s%s%s   ", KBLU, argv[i], RESET);
                         else
                             printf("%s   ", argv[i]);
@@ -290,7 +290,7 @@ int listdirectory(int argc, char **argv, sysinfo *currsys)
         }
         i++;
     }
-    free(statbuf);
+    free(statbufls);
     if (preventleak)
         free(argv[1]);
     return 0;

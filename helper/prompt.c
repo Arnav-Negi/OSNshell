@@ -1,5 +1,4 @@
 #include "prompt.h"
-#include "inputs.h"
 
 void prompt()
 {

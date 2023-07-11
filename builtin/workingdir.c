@@ -1,5 +1,4 @@
-#include "pwd.h"
-#include "../included.h"
+#include "workingdir.h"
 
 char *pwd()
 {

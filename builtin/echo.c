@@ -1,5 +1,4 @@
 #include "echo.h"
-#include "../included.h"
 
 void echo(char **args)
 {

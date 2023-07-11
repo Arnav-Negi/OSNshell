@@ -1,7 +1,4 @@
-#include "../included.h"
-#include "../helper/inputs.h"
-#include "../builtin/cd.h"
-#include "../builtin/workingdir.h"
+#include "discover.h"
 
 char *currdir;
 int lencurrdir;

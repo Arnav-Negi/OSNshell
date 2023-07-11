@@ -1,3 +1,7 @@
+#pragma once
+
+#include "signal_handling.h"
+#include "../helper/prompt.h"
 #include "../included.h"
 
 void ctrlZ_handler(int signum);
